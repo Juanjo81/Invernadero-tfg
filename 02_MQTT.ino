@@ -1,0 +1,128 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+extern bool modoManual;
+extern bool modoManualVentilador;
+extern int umbralEncender;
+extern int umbralApagar;
+extern bool ledsEncendidos;
+extern int ultimoR, ultimoG, ultimoB;
+extern bool tapaAbierta;
+extern int umbralVentilarEncender;
+extern int umbralVentilarApagar;
+
+
+// ====== WIFI ======
+const char* WIFI_SSID = "Tenda_1F2560";
+const char* WIFI_SSID2 = "MOVISTAR_CE20";
+const char* WIFI_PASS = "77777777";
+
+// ====== MQTT ======
+const char* MQTT_HOST = "192.168.1.20";
+const uint16_t MQTT_PORT = 1883;
+const char* MQTT_USER = "";
+const char* MQTT_PASS = "";
+
+WiFiClient espClient;
+PubSubClient mqtt(espClient); 
+
+void inicializarRed() {
+  connectWiFi();
+  connectMQTT();
+}
+
+void connectWiFi(){
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  while (WiFi.status()!=WL_CONNECTED) { delay(300); }
+}
+
+void mantenerConexiones() {
+    if (WiFi.status() != WL_CONNECTED) connectWiFi();
+  if (!mqtt.connected()) connectMQTT();
+
+  Serial.println("\nConectado a: " + WiFi.SSID());
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+
+}
+
+// ====== MQTT CALLBACK ======
+void onMqtt(char* topic, byte* payload, unsigned int len){
+  String msg; msg.reserve(len);
+  for (unsigned int i=0;i<len;i++) msg += (char)payload[i];
+  msg.trim();
+
+  if (String(topic) == T_BOMBA_CMD){
+    modoManual = true;
+    if (msg.equalsIgnoreCase("ON"))  { bombaEncender(); }
+    if (msg.equalsIgnoreCase("OFF")) { bombaApagar(); }
+  }
+  else  if (String(topic) == T_FAN_CMD){
+    modoManualVentilador = true;
+    if (msg.equalsIgnoreCase("ON"))  { ventiladorEncender();  }
+    if (msg.equalsIgnoreCase("OFF")) { ventiladorApagar();   }
+  }
+  else if (String(topic) == T_OPTIMO_HUM){
+    modoManual = false;
+    int v = msg.toInt();
+    v = constrain(v, 0, 100);
+    humedadObjetivo  = v;
+  }
+  else if (String(topic) == T_LED_CMD){
+  int r, g, b;
+  if (parseHexColor(msg, r, g, b) || (sscanf(msg.c_str(), "%d,%d,%d", &r, &g, &b) == 3)) {
+    ledsEncendidos = true;
+    aplicarColor(r, g, b);
+  }
+}
+else if (String(topic) == T_LED_POWER){
+  if (msg.equalsIgnoreCase("OFF")) {
+    ledsEncendidos = false;
+    aplicarColor(ultimoR, ultimoG, ultimoB);
+  }
+  else if (msg.equalsIgnoreCase("ON")) {
+    ledsEncendidos = true;
+    aplicarColor(ultimoR, ultimoG, ultimoB);
+  }
+}
+
+else if (String(topic) == T_OPTIMO_TEMP){
+  modoManualVentilador = false;
+  int v = msg.toInt();
+  v = constrain(v, 10, 100);
+  temperaturaObjetivo  = v;
+  }
+else if (String(topic) == T_SERVO_CMD){
+  if (msg.equalsIgnoreCase("OPEN")) {
+    servoMotor.write(120);
+    servoMotor2.write(120);
+    tapaAbierta = true;
+    Serial.println("Tapa abierta");
+  }
+  else if (msg.equalsIgnoreCase("CLOSE")) {
+    servoMotor.write(0);
+    servoMotor2.write(0);
+    tapaAbierta = false;
+    Serial.println("Tapa cerrada");
+  }
+  }
+}
+
+void connectMQTT(){
+  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  mqtt.setCallback(onMqtt);
+  while (!mqtt.connected()){
+    if (mqtt.connect("esp32-invernadero", MQTT_USER, MQTT_PASS)){       
+      mqtt.subscribe(T_BOMBA_CMD, 1);
+      mqtt.subscribe(T_OPTIMO_HUM, 1);
+      mqtt.subscribe(T_LED_CMD, 1);
+      mqtt.subscribe(T_LED_POWER, 1);
+      mqtt.subscribe(T_FAN_CMD, 1);
+      mqtt.subscribe(T_OPTIMO_TEMP, 1);
+      mqtt.subscribe(T_SERVO_CMD);
+    } else {
+      delay(500);
+    }
+ }
+}
+
