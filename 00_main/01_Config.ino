@@ -1,3 +1,6 @@
+// ====== VERSION ======
+#define VERSION_FIRMWARE "v2.1.3"
+
 // ====== PINES ======
 #define DHTPIN           4
 #define DHTTYPE      DHT22
