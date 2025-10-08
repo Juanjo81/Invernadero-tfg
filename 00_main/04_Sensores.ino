@@ -20,10 +20,7 @@ void inicializarSensores() {
 float leerHumedadSuelo() {
   int raw = analogRead(SUELO_PIN);
 
-  // Ignorar lecturas durante el primer segundo
-  if (millis() < 1000) {
-    return 0.0; 
-  }
+  if (millis() < 1000) return 0.0;
 
   if (raw < 100 || raw > 4095) {
     if (sensorSueloOK) {
@@ -34,9 +31,12 @@ float leerHumedadSuelo() {
   }
 
   sensorSueloOK = true;
-  float pct = 100.0 - ((raw / SUELO_SECO) * 100.0);
+
+  // Normalización entre mojado y seco
+  float pct = ((SUELO_SECO - raw) / (SUELO_SECO - SUELO_MOJADO)) * 100.0;
   return constrain(pct, 0.0, 100.0);
 }
+
 
 
 float leerTemperatura() {
@@ -60,16 +60,71 @@ float leerDistanciaCM() {
   return duracion * 0.034 / 2.0;
 }
 float calcularNivelTanque() {
-  float distancia = leerDistanciaCM(); 
+  float distancia = leerDistanciaCM();
+
+  // Publicar la distancia cruda para diagnóstico
+  mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
+
   if (isnan(distancia)) {
-    if (sensorNivelOK) mqtt.publish("invernadero/alertas", "Fallo en sensor de Nivel del Deposito", true);
+    if (sensorNivelOK) {
+      mqtt.publish("invernadero/alertas", "Fallo en sensor de Nivel del Deposito", true);
+    }
     sensorNivelOK = false;
     return 0.0;
   }
+
   sensorNivelOK = true;
+
+  // Conversión a porcentaje
   float nivel = 100.0 - ((distancia / ALTURA_TANQUE_CM) * 100.0);
-  return constrain(nivel, 0.0, 100.0);
+  nivel = constrain(nivel, 0.0, 100.0);
+
+  // Publicar nivel calculado
+  mqtt.publish("invernadero/debug/nivel_pct", String(nivel).c_str());
+
+  return nivel;
 }
+
+float verificarSensorNivel() {
+  // Activar el pulso ultrasónico
+  digitalWrite(ULTRASONIC_TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ULTRASONIC_TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(ULTRASONIC_TRIG, LOW);
+
+  // Medir duración del eco
+  long duracion = pulseIn(ULTRASONIC_ECHO, HIGH, 30000);
+  mqtt.publish("invernadero/debug/nivel/duracion_us", String(duracion).c_str());
+
+  // Convertir a distancia
+  float distancia = duracion * 0.034 / 2.0;
+  mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
+
+  // Validar rango físico
+  if (duracion == 0 || distancia < 2.0 || distancia > 100.0) {
+    sensorNivelOK = false;
+    mqtt.publish("invernadero/debug/nivel/estado_sensor", "FALLO");
+    mqtt.publish("invernadero/alertas", "Sensor de nivel ultrasónico no responde o fuera de rango", true);
+    return 0.0;
+  }
+
+  sensorNivelOK = true;
+  mqtt.publish("invernadero/debug/nivel/estado_sensor", "OK");
+
+  // Calcular porcentaje de nivel
+  const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
+  const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
+
+  float nivelPct = ((DISTANCIA_MAX_CM - distancia) / (DISTANCIA_MAX_CM - DISTANCIA_MIN_CM)) * 100.0;
+  nivelPct = constrain(nivelPct, 0.0, 100.0);
+
+  mqtt.publish("invernadero/debug/nivel_pct", String(nivelPct).c_str());
+  mqtt.publish("invernadero/tanque/nivel", String(nivelPct).c_str());
+
+  return nivelPct;
+}
+
 void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
   if (millis() - t_pub > 5000) {
     mqtt.publish(T_SUELO_HUM, String(sueloPct, 2).c_str(), true);

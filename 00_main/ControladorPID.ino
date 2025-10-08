@@ -61,7 +61,8 @@ void activarBombaPorPID(float salidaPID) {
     tEvaluacion = ahora;
     duracionRiego = calcularTiempoPID(salidaPID, 5000);
 
-    mqtt.publish("invernadero/debug/activacion_pid", "Condiciones OK, tiempo calculado: " + String(duracionRiego));
+   String mensaje = "Condiciones OK, tiempo calculado: " + String(duracionRiego);
+   mqtt.publish("invernadero/debug/activacion_pid", mensaje.c_str());
 
     if (duracionRiego > 0) {
       digitalWrite(CH1_IN, HIGH);

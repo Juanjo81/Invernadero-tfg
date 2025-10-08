@@ -11,6 +11,8 @@ void inicializarRed();
 void inicializarPID();
 void activarBombaporPID();
 void activarVentiladorporPID();
+float verificarSensorNivel();
+
 
 extern Servo servoMotor;
 extern Servo servoMotor2;
@@ -55,7 +57,7 @@ void loop() {
     float sueloPct = leerHumedadSuelo();
     float t = leerTemperatura();
     float h = dht.readHumidity();
-    float nivelPct = calcularNivelTanque();
+    float nivelPct = verificarSensorNivel();
 
     temperaturaActual = t;
     humedadActual = sueloPct;

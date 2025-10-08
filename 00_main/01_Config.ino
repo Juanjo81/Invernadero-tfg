@@ -5,8 +5,8 @@
 #define DHTPIN           4
 #define DHTTYPE      DHT22
 #define SUELO_PIN       34
-#define ULTRASONIC_TRIG 18
-#define ULTRASONIC_ECHO 19
+#define ULTRASONIC_TRIG 12
+#define ULTRASONIC_ECHO 33
 #define CH1_IN          23
 #define LED_R_PIN       25
 #define LED_G_PIN       26

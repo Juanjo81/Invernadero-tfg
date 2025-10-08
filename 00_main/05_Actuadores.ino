@@ -40,7 +40,7 @@ void inicializarActuadores() {
   ledcAttach(LED_R_PIN, 5000, 8);
   ledcAttach(LED_G_PIN, 5000, 8);
   ledcAttach(LED_B_PIN, 5000, 8);
-  aplicarColor(ultimoR, ultimoG, ultimoB);
+  aplicarColor(0, 0, 0);
 }
 
 void bombaEncender() { digitalWrite(CH1_IN, HIGH); gestionarEvento("Notificacion", "Riego Manual Iniciado"); bombaOn = true; modoManual=true; }
