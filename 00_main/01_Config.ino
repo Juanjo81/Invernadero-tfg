@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "v2.1.3"
+#define VERSION_FIRMWARE "v2.1.4"
 
 // ====== PINES ======
 #define DHTPIN           4

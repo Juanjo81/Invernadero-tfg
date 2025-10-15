@@ -63,11 +63,11 @@ float calcularNivelTanque() {
   float distancia = leerDistanciaCM();
 
   // Publicar la distancia cruda para diagnóstico
-  mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
+  //mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
 
   if (isnan(distancia)) {
     if (sensorNivelOK) {
-      mqtt.publish("invernadero/alertas", "Fallo en sensor de Nivel del Deposito", true);
+    //  mqtt.publish("invernadero/alertas", "Fallo en sensor de Nivel del Deposito", true);
     }
     sensorNivelOK = false;
     return 0.0;
@@ -95,11 +95,11 @@ float verificarSensorNivel() {
 
   // Medir duración del eco
   long duracion = pulseIn(ULTRASONIC_ECHO, HIGH, 30000);
-  mqtt.publish("invernadero/debug/nivel/duracion_us", String(duracion).c_str());
+  //mqtt.publish("invernadero/debug/nivel/duracion_us", String(duracion).c_str());
 
   // Convertir a distancia
   float distancia = duracion * 0.034 / 2.0;
-  mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
+  //mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
 
   // Validar rango físico
   if (duracion == 0 || distancia < 2.0 || distancia > 100.0) {
@@ -110,7 +110,7 @@ float verificarSensorNivel() {
   }
 
   sensorNivelOK = true;
-  mqtt.publish("invernadero/debug/nivel/estado_sensor", "OK");
+  //mqtt.publish("invernadero/debug/nivel/estado_sensor", "OK");
 
   // Calcular porcentaje de nivel
   const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
@@ -119,8 +119,8 @@ float verificarSensorNivel() {
   float nivelPct = ((DISTANCIA_MAX_CM - distancia) / (DISTANCIA_MAX_CM - DISTANCIA_MIN_CM)) * 100.0;
   nivelPct = constrain(nivelPct, 0.0, 100.0);
 
-  mqtt.publish("invernadero/debug/nivel_pct", String(nivelPct).c_str());
-  mqtt.publish("invernadero/tanque/nivel", String(nivelPct).c_str());
+  //mqtt.publish("invernadero/debug/nivel_pct", String(nivelPct).c_str());
+  //mqtt.publish("invernadero/tanque/nivel", String(nivelPct).c_str());
 
   return nivelPct;
 }

@@ -70,12 +70,11 @@ void loop() {
     pidHum.actualizar(humedadActual, humedadObjetivo);
 
     // Control proporcional por tiempo
-    mqtt.publish("invernadero/debug/nivel_pct", String(nivelPct).c_str());
     activarBombaPorPID(pidHum.output);
     activarVentiladorPorPID(pidTemp.output); 
-mqtt.publish("invernadero/debug/pid/hum/output", String(pidHum.output).c_str());
+/*mqtt.publish("invernadero/debug/pid/hum/output", String(pidHum.output).c_str());
 mqtt.publish("invernadero/debug/hum/actual", String(humedadActual).c_str());
-mqtt.publish("invernadero/debug/hum/objetivo", String(humedadObjetivo).c_str());
+mqtt.publish("invernadero/debug/hum/objetivo", String(humedadObjetivo).c_str());*/
 
 
     t_sensores = ahora;

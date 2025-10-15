@@ -9,11 +9,12 @@ const float KpTemp = 2.0, KiTemp = 0.1, KdTemp = 0.5;
 const float KpHum  = 3.0, KiHum  = 0.2, KdHum  = 0.8;
 
 // --- Variables externas ---
-extern float nivelPct;
+
 extern float temperaturaActual;
 extern float humedadActual;
 extern float temperaturaObjetivo;
 extern float humedadObjetivo;
+float verificarSensorNivel();
 
 void activarBombaPorPID(float salidaPID) {
   static unsigned long tEvaluacion = 0;
@@ -45,7 +46,7 @@ void activarBombaPorPID(float salidaPID) {
     return;
   }
 
-  if (nivelPct < 1.0) {
+  if (verificarSensorNivel() < 1.0) {
     mqtt.publish("invernadero/debug/bloqueo", "Nivel demasiado bajo para regar");
     gestionarEvento("alerta", "No se puede regar, nivel demasiado bajo");
     return;
