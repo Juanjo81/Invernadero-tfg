@@ -84,6 +84,8 @@ mqtt.publish("invernadero/debug/hum/objetivo", String(humedadObjetivo).c_str());
         bombaApagar();
         mqtt.publish("invernadero/debug/bloqueo", "Riego manual interrumpido por fallo de sensor");
         gestionarEvento("alerta", "Riego manual interrumpido por fallo de sensor");
+        mostrarEstadoBloqueo();
+
       }
     }
 

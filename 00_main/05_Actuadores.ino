@@ -19,8 +19,6 @@ unsigned long tiempoInicioRiego = 0;
 const unsigned long MAX_TIEMPO_RIEGO = 30000;
 bool alertaTiempoExcedido = false;
 
-int ultimoR = 255, ultimoG = 255, ultimoB = 255;
-
 Servo servoMotor;
 Servo servoMotor2;
 
@@ -43,30 +41,34 @@ void inicializarActuadores() {
   aplicarColor(0, 0, 0);
 }
 
-void bombaEncender() { digitalWrite(CH1_IN, HIGH); gestionarEvento("Notificacion", "Riego Manual Iniciado"); bombaOn = true; modoManual=true; }
-void bombaApagar()   { digitalWrite(CH1_IN, LOW); gestionarEvento("Notificacion", "Riego Manual Detenido, volviendo a modo Automatico"); bombaOn = false; modoManual=false; }
+void bombaEncender() {
+  if (!verificarSensoresDuranteRiego()) {
+    gestionarEvento("alerta", "Intento de riego manual bloqueado por fallo de sensor");
+    mqtt.publish("invernadero/debug/bloqueo", "Riego manual bloqueado por fallo de sensor");
+    mostrarEstadoBloqueo();
+    return;
+  }
+
+  digitalWrite(CH1_IN, HIGH);
+  gestionarEvento("notificacion", "Riego Manual Iniciado");
+
+  bombaOn = true;
+  modoManual = true;
+  mostrarEstadoRiego();
+}
+
+void bombaApagar() {
+  digitalWrite(CH1_IN, LOW);
+  gestionarEvento("notificacion", "Riego Manual Finalizado");
+
+  bombaOn = false;
+  modoManual = false;
+  mostrarEstadoNormal();
+}
 void ventiladorEncender() { digitalWrite(FAN_CTRL_PIN, HIGH); gestionarEvento("Notificacion", "Ventilacion Manual Iniciada");  ventiladorOn = true;modoManualVentilador=true;}
 void ventiladorApagar()   { digitalWrite(FAN_CTRL_PIN, LOW); gestionarEvento("Notificacion", "Ventilacion Manual Detenida");  ventiladorOn = false;modoManualVentilador=false; }
 
-void aplicarColor(int r, int g, int b) {
-  ultimoR = r; ultimoG = g; ultimoB = b;
-  if (ledsEncendidos) {
-    ledcWrite(LED_R_PIN, r);
-    ledcWrite(LED_G_PIN, g);
-    ledcWrite(LED_B_PIN, b);
-  } else {
-    ledcWrite(LED_R_PIN, 0);
-    ledcWrite(LED_G_PIN, 0);
-    ledcWrite(LED_B_PIN, 0);
-  }
-}
-bool parseHexColor(const String& s, int& r, int& g, int& b) {
-  if (s.length()!=7 || s[0]!='#') return false;
-  r = strtol(s.substring(1,3).c_str(), nullptr, 16);
-  g = strtol(s.substring(3,5).c_str(), nullptr, 16);
-  b = strtol(s.substring(5,7).c_str(), nullptr, 16);
-  return true;
-}
+
 /*CONTROL SIN PID
 void controlarRiego(float sueloPct, float nivelPct) {
   if (!sensorSueloOK || !sensorNivelOK) {
