@@ -12,6 +12,7 @@ void inicializarPID();
 void activarBombaporPID();
 void activarVentiladorporPID();
 float verificarSensorNivel();
+bool verificarSensoresDuranteRiego();
 
 
 extern Servo servoMotor;
@@ -32,6 +33,8 @@ extern float temperaturaActual;
 extern float humedadActual;
 extern float temperaturaObjetivo;
 extern float humedadObjetivo;
+extern bool modoManual;
+extern bool bombaOn;
 
 
 void setup() {
@@ -75,6 +78,14 @@ void loop() {
 /*mqtt.publish("invernadero/debug/pid/hum/output", String(pidHum.output).c_str());
 mqtt.publish("invernadero/debug/hum/actual", String(humedadActual).c_str());
 mqtt.publish("invernadero/debug/hum/objetivo", String(humedadObjetivo).c_str());*/
+    //Control de errores para riego manual 
+    if (modoManual && bombaOn) {
+        if (!verificarSensoresDuranteRiego()) {
+        bombaApagar();
+        mqtt.publish("invernadero/debug/bloqueo", "Riego manual interrumpido por fallo de sensor");
+        gestionarEvento("alerta", "Riego manual interrumpido por fallo de sensor");
+      }
+    }
 
 
     t_sensores = ahora;

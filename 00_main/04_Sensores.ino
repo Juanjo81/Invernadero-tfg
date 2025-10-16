@@ -134,3 +134,31 @@ void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
     t_pub = millis();
   }
 }
+
+bool verificarSensoresDuranteRiego() {
+  float nivel = verificarSensorNivel();
+  float humedadSuelo = leerHumedadSuelo();
+  float temp = leerTemperatura();
+  float hum = dht.readHumidity();
+
+  if (!sensorNivelOK || nivel < 1.0 || nivel == -1.0) {
+    mqtt.publish("invernadero/debug/bloqueo", "Sensor de nivel no confiable o nivel crítico");
+    gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
+    return false;
+  }
+
+  if (humedadSuelo < 0.0 || humedadSuelo > 100.0) {
+    mqtt.publish("invernadero/debug/bloqueo", "Sensor de humedad del suelo fuera de rango");
+    gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de humedad del suelo");
+    return false;
+  }
+
+  if (temp < -10.0 || temp > 60.0 || hum < 0.0 || hum > 100.0) {
+    mqtt.publish("invernadero/debug/bloqueo", "Sensor DHT fuera de rango");
+    gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de temperatura/humedad");
+    return false;
+  }
+
+  return true;
+}
+
