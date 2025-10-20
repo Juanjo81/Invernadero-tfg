@@ -14,14 +14,16 @@ extern float temperaturaActual;
 extern float humedadActual;
 extern float temperaturaObjetivo;
 extern float humedadObjetivo;
-float verificarSensorNivel();
+
+// --- Variables  ---
+bool regandoPID = false;
+float leerNivel();
 bool verificarSensoresDuranteRiego();
 
 void activarBombaPorPID(float salidaPID) {
   static unsigned long tEvaluacion = 0;
   static unsigned long tInicioRiego = 0;
   static unsigned long duracionRiego = 0;
-  static bool regando = false;
   unsigned long ahora = millis();
 
   // Trazabilidad base
@@ -47,7 +49,7 @@ void activarBombaPorPID(float salidaPID) {
     return;
   }
 
-  float nivel = verificarSensorNivel();
+  float nivel = leerNivel();
   if (nivel < 1.0 || nivel == -1.0) {
     mqtt.publish("invernadero/debug/bloqueo", "Nivel demasiado bajo para regar");
     gestionarEvento("alerta", "No se puede regar, nivel demasiado bajo");
@@ -60,7 +62,7 @@ void activarBombaPorPID(float salidaPID) {
   }
 
   // Evaluación periódica cada 5 s
-  if (!regando && ahora - tEvaluacion >= 5000) {
+  if (!regandoPID && ahora - tEvaluacion >= 5000) {
     tEvaluacion = ahora;
     duracionRiego = calcularTiempoPID(salidaPID, 5000);
 
@@ -75,7 +77,7 @@ void activarBombaPorPID(float salidaPID) {
               ",\"hum_objetivo\":" + String(humedadObjetivo) + "}";
       mqtt.publish("invernadero/evento/humedad", json.c_str());
 
-      regando = true;
+      regandoPID = true;
       tInicioRiego = ahora;
     } else {
       digitalWrite(CH1_IN, LOW);
@@ -85,10 +87,10 @@ void activarBombaPorPID(float salidaPID) {
   }
 
   // Supervisión activa de los sensores durante el riego
-  if (regando) {
+  if (regandoPID) {
     if (!verificarSensoresDuranteRiego()) {
       digitalWrite(CH1_IN, LOW);
-      regando = false;
+      regandoPID = false;
       gestionarEvento("alerta", "Riego por PID interrumpido por fallo de sensor");
       mqtt.publish("invernadero/estado/bomba", "Interrumpido por fallo de sensor");
       return;
@@ -97,7 +99,7 @@ void activarBombaPorPID(float salidaPID) {
     // Finalizar riego por tiempo
     if (ahora - tInicioRiego >= duracionRiego) {
       digitalWrite(CH1_IN, LOW);
-      regando = false;
+      regandoPID = false;
       gestionarEvento("notificacion", "Bomba desactivada tras ciclo PID");
       mqtt.publish("invernadero/estado/bomba", "Desactivada tras ciclo PID");
     }

@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "v2.1.6"
+#define VERSION_FIRMWARE "v2.1.8"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -19,6 +19,8 @@
 const float SUELO_SECO        = 2600.0;  // valor de suelo seco
 const float SUELO_MOJADO        = 800.0;  // valor de suelo mojado
 const float ALTURA_TANQUE_CM  = 26.0;    // altura del depósito
+const float UMBRAL_NIVEL_MINIMO = 5.0;  // % mínimo para permitir riego
+
 const unsigned long INTERVALO_SENSORES = 5000; 
 #define DHTTYPE               DHT22      
 
@@ -27,7 +29,7 @@ float nivelPct = 0.0;
 float temperaturaActual = 0.0;
 float humedadActual = 0.0;
 float temperaturaObjetivo = 35.0;
-float humedadObjetivo = 50.0;
+float humedadObjetivo = 0.0;
 
 
 // =================== TÓPICOS MQTT ===================

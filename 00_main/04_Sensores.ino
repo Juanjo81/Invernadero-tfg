@@ -4,11 +4,40 @@
 bool sensorSueloOK = true;
 bool sensorTempOK  = true;
 bool sensorNivelOK = true;
+bool sistemaBloqueado = false;
+
 extern PubSubClient mqtt;
+extern float nivelPct;
+extern float humedadActual;
+extern float TemperaturaActual;
+extern const float UMBRAL_NIVEL_MINIMO;
+
 
 unsigned long t_pub = 0;
 
 DHT dht(DHTPIN, DHTTYPE);
+
+
+bool sistemaOK() {
+  if (!verificarSensoresDuranteRiego()) {
+    if (!sistemaBloqueado) {
+      sistemaBloqueado = true;
+      mqtt.publish("invernadero/alerta/fallo", "Sistema bloqueado por fallo de sensor");
+      gestionarEvento("alerta", "Sistema bloqueado por fallo de sensor");
+      mostrarEstadoBloqueo();
+    }
+    return false;
+  }
+
+  if (sistemaBloqueado) {
+    sistemaBloqueado = false;
+    mqtt.publish("invernadero/estado", "Sensores OK, sistema desbloqueado");
+    mostrarEstadoNormal();
+  }
+
+  return true;
+}
+
 
 void inicializarSensores() {
   pinMode(SUELO_PIN, INPUT);
@@ -19,10 +48,10 @@ void inicializarSensores() {
 
 float leerHumedadSuelo() {
   int raw = analogRead(SUELO_PIN);
+mqtt.publish("invernadero/alertas", (String("valor de raw: ") + raw).c_str());
 
-  if (millis() < 1000) return 0.0;
 
-  if (raw < 100 || raw > 4095) {
+  if (raw < 100 || raw > 4094) {
     if (sensorSueloOK) {
       mqtt.publish("invernadero/alertas", "Fallo en sensor de humedad del suelo", true);
     }
@@ -50,42 +79,8 @@ float leerTemperatura() {
   return t;
 }
 
-float leerDistanciaCM() {
-  digitalWrite(ULTRASONIC_TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(ULTRASONIC_TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(ULTRASONIC_TRIG, LOW);
-  long duracion = pulseIn(ULTRASONIC_ECHO, HIGH, 30000);
-  return duracion * 0.034 / 2.0;
-}
-float calcularNivelTanque() {
-  float distancia = leerDistanciaCM();
 
-  // Publicar la distancia cruda para diagnóstico
-  //mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
-
-  if (isnan(distancia)) {
-    if (sensorNivelOK) {
-    //  mqtt.publish("invernadero/alertas", "Fallo en sensor de Nivel del Deposito", true);
-    }
-    sensorNivelOK = false;
-    return 0.0;
-  }
-
-  sensorNivelOK = true;
-
-  // Conversión a porcentaje
-  float nivel = 100.0 - ((distancia / ALTURA_TANQUE_CM) * 100.0);
-  nivel = constrain(nivel, 0.0, 100.0);
-
-  // Publicar nivel calculado
-  mqtt.publish("invernadero/debug/nivel_pct", String(nivel).c_str());
-
-  return nivel;
-}
-
-float verificarSensorNivel() {
+float leerNivel() {
   // Activar el pulso ultrasónico
   digitalWrite(ULTRASONIC_TRIG, LOW);
   delayMicroseconds(2);
@@ -95,11 +90,9 @@ float verificarSensorNivel() {
 
   // Medir duración del eco
   long duracion = pulseIn(ULTRASONIC_ECHO, HIGH, 30000);
-  //mqtt.publish("invernadero/debug/nivel/duracion_us", String(duracion).c_str());
 
   // Convertir a distancia
   float distancia = duracion * 0.034 / 2.0;
-  //mqtt.publish("invernadero/debug/nivel/distancia_cm", String(distancia).c_str());
 
   // Validar rango físico
   if (duracion == 0 || distancia < 2.0 || distancia > 100.0) {
@@ -107,6 +100,15 @@ float verificarSensorNivel() {
     mqtt.publish("invernadero/debug/nivel/estado_sensor", "FALLO");
     mqtt.publish("invernadero/alertas", "Sensor de nivel ultrasónico no responde o fuera de rango", true);
     return 0.0;
+  }
+
+  // Validar fluctuación brusca
+  static float distanciaAnterior = 0.0;
+  if (distanciaAnterior > 0.0 && abs(distancia - distanciaAnterior) > 10.0) {
+    sensorNivelOK = false;
+    mqtt.publish("invernadero/debug/nivel/estado_sensor", "FLUCTUACIÓN");
+    mqtt.publish("invernadero/alertas", "Lectura de nivel ultrasónico inestable", true);
+    return distanciaAnterior;  // mantener valor anterior
   }
 
   sensorNivelOK = true;
@@ -136,24 +138,24 @@ void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
 }
 
 bool verificarSensoresDuranteRiego() {
-  float nivel = verificarSensorNivel();
-  float humedadSuelo = leerHumedadSuelo();
-  float temp = leerTemperatura();
-  float hum = dht.readHumidity();
 
-  if (!sensorNivelOK || nivel < 1.0 || nivel == -1.0) {
+  if (!verificarSensorNivel()) {
+    nivelPct = leerNivel();
     mqtt.publish("invernadero/debug/bloqueo", "Sensor de nivel no confiable o nivel crítico");
     gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
+    mqtt.publish("invernadero/debug/nivel/dentrodeverificarsensornivel", sensorNivelOK ? "OK" : "FALLO");
+    mqtt.publish("invernadero/debug/nivel/dentrodeverificarsensornivel", String(nivelPct).c_str());
+
     return false;
   }
 
-  if (humedadSuelo < 0.0 || humedadSuelo > 100.0) {
+  if (!verificarSensorSuelo()) {
     mqtt.publish("invernadero/debug/bloqueo", "Sensor de humedad del suelo fuera de rango");
     gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de humedad del suelo");
     return false;
   }
 
-  if (temp < -10.0 || temp > 60.0 || hum < 0.0 || hum > 100.0) {
+  if (!verificarSensorDHT()) {
     mqtt.publish("invernadero/debug/bloqueo", "Sensor DHT fuera de rango");
     gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de temperatura/humedad");
     return false;
@@ -161,4 +163,17 @@ bool verificarSensoresDuranteRiego() {
 
   return true;
 }
+
+bool verificarSensorNivel() {
+  return sensorNivelOK && nivelPct >= UMBRAL_NIVEL_MINIMO && nivelPct != -1.0;
+}
+
+bool verificarSensorSuelo() {
+  return sensorSueloOK && humedadActual >= 1.0 && humedadActual <= 100.0;
+}
+
+bool verificarSensorDHT() {
+  return sensorTempOK && temperaturaActual > -10.0 && temperaturaActual < 60.0 ;
+}
+
 
