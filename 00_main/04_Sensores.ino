@@ -11,6 +11,9 @@ extern float nivelPct;
 extern float humedadActual;
 extern float TemperaturaActual;
 extern const float UMBRAL_NIVEL_MINIMO;
+extern bool modoManual;
+extern bool regandoPID;
+extern bool bombaOn;
 
 
 unsigned long t_pub = 0;
@@ -22,7 +25,7 @@ bool sistemaOK() {
   if (!verificarSensoresDuranteRiego()) {
     if (!sistemaBloqueado) {
       sistemaBloqueado = true;
-      mqtt.publish("invernadero/alerta/fallo", "Sistema bloqueado por fallo de sensor");
+      mqtt.publish("invernadero/alerta/fallo", "Sistema bloqueado por fallo de sensor sensorrrrrrrrrrrrrrr");
       gestionarEvento("alerta", "Sistema bloqueado por fallo de sensor");
       mostrarEstadoBloqueo();
     }
@@ -140,12 +143,11 @@ void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
 bool verificarSensoresDuranteRiego() {
 
   if (!verificarSensorNivel()) {
-    nivelPct = leerNivel();
-    mqtt.publish("invernadero/debug/bloqueo", "Sensor de nivel no confiable o nivel crítico");
-    gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
-    mqtt.publish("invernadero/debug/nivel/dentrodeverificarsensornivel", sensorNivelOK ? "OK" : "FALLO");
-    mqtt.publish("invernadero/debug/nivel/dentrodeverificarsensornivel", String(nivelPct).c_str());
-
+    if (nivelPct <= UMBRAL_NIVEL_MINIMO){
+      gestionarEvento("alerta", "Riego interrumpido por nivel demasiado bajo");
+    }else{
+      gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
+    }
     return false;
   }
 
@@ -174,6 +176,18 @@ bool verificarSensorSuelo() {
 
 bool verificarSensorDHT() {
   return sensorTempOK && temperaturaActual > -10.0 && temperaturaActual < 60.0 ;
+}
+
+// === Control de riego activo ===
+void controlarRiegoActivo() {
+  if ((modoManual || regandoPID) && bombaOn) {
+    if (!verificarSensoresDuranteRiego()) {
+      mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor durante riego activo");
+      bombaApagar();
+      gestionarEvento("alerta", "Riego interrumpido por fallo de sensor");
+      mostrarEstadoBloqueo();
+    }
+  }
 }
 
 

@@ -13,7 +13,7 @@ void activarBombaporPID();
 void activarVentiladorporPID();
 float leerNivel();
 bool verificarSensoresDuranteRiego();
-
+void compruebaVersion();
 
 extern Servo servoMotor;
 extern Servo servoMotor2;
@@ -30,6 +30,7 @@ unsigned long t_sensores = 0;
 extern DHT dht;
 
 extern float nivelPct;
+extern float sueloPct;
 extern float temperaturaActual;
 extern float humedadActual;
 extern float temperaturaObjetivo;
@@ -55,61 +56,36 @@ void loop() {
   mantenerConexiones();
   mqtt.loop();
   gestionarOTA();
-
-
-
+  compruebaVersion();
 
   unsigned long ahora = millis();
 
-  // ⏱ Control periódico de sensores
+  // Control periódico de sensores
   if (ahora - t_sensores > INTERVALO_SENSORES) {
-      // ⛑ Verificación preventiva de sensores
-  if (!sistemaOK()) mostrarEstadoBloqueo();
-    float sueloPct = leerHumedadSuelo();
-    float t = leerTemperatura();
-    float h = dht.readHumidity();
-    float nivelPct = leerNivel();
+     
+      sueloPct = leerHumedadSuelo();
+      temperaturaActual = leerTemperatura();
+      humedadActual = dht.readHumidity();
+      nivelPct = leerNivel();
 
-    temperaturaActual = t;
-    humedadActual = sueloPct;
+      // Verificación preventiva de sensores
+      sistemaOK();
 
-    publicarSensores(sueloPct, t, h, nivelPct);
-    pintarOLED(sueloPct, t, h, nivelPct);
+      publicarSensores(sueloPct, temperaturaActual, humedadActual, nivelPct);
+      pintarOLED(sueloPct, temperaturaActual, humedadActual, nivelPct);
 
-    // 🔁 Actualizar PID
-    pidTemp.actualizar(temperaturaActual, temperaturaObjetivo);
-    pidHum.actualizar(humedadActual, humedadObjetivo);
+      // Actualizar PID
+      pidTemp.actualizar(temperaturaActual, temperaturaObjetivo);
+      pidHum.actualizar(humedadActual, humedadObjetivo);
 
-    // ⚙️ Control proporcional por tiempo
-    activarBombaPorPID(pidHum.output);
-    activarVentiladorPorPID(pidTemp.output);
+      // Control proporcional por tiempo
+      activarBombaPorPID(pidHum.output);
+      activarVentiladorPorPID(pidTemp.output);
 
-    // 🛑 Control de errores durante riego manual o PID
-    if ((modoManual || regandoPID) && bombaOn) {
-      if (!verificarSensoresDuranteRiego()) {
-        mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor durante riego activo");
-        bombaApagar();
-        gestionarEvento("alerta", "Riego interrumpido por fallo de sensor");
-        mostrarEstadoBloqueo();
-      }
+      // Control de errores durante riego manual o PID
+      controlarRiegoActivo();
+
+      t_sensores = ahora;
     }
-
-    // 🧠 Lógica de parada por objetivo o fallo
-    if (regandoPID) {
-      if (humedadActual >= humedadObjetivo || !verificarSensoresDuranteRiego()) {
-        bombaApagar();
-        gestionarEvento("notificacion", "Riego PID detenido por objetivo o fallo");
-        mqtt.publish("invernadero/debug/parada_pid", "Riego detenido: humedad alcanzada o fallo");
-
-        if (!verificarSensoresDuranteRiego()) {
-          mostrarEstadoBloqueo();
-        } else {
-          mostrarEstadoNormal();
-        }
-      }
-    }
-
-    t_sensores = ahora;
-  }
 }
 

@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "v2.1.8"
+#define VERSION_FIRMWARE "v2.1.9"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -26,6 +26,7 @@ const unsigned long INTERVALO_SENSORES = 5000;
 
 // =================== VARIABLES DE ESTADO ===================
 float nivelPct = 0.0;
+float sueloPct =0.0;
 float temperaturaActual = 0.0;
 float humedadActual = 0.0;
 float temperaturaObjetivo = 35.0;

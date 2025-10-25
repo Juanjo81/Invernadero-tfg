@@ -1,5 +1,9 @@
 #include <ArduinoOTA.h>
 
+#include <HTTPClient.h>
+#include <HTTPUpdate.h>  
+
+
 void configurarOTA(const char* nombreDispositivo) {
   ArduinoOTA.setHostname(nombreDispositivo);
 
@@ -32,3 +36,44 @@ void configurarOTA(const char* nombreDispositivo) {
 void gestionarOTA() {
   ArduinoOTA.handle();
 }
+
+void compruebaVersion() {
+  HTTPClient http;
+  http.begin("http://192.168.1.30/index.php/s/ic2k8aePcapxdAn/download/Version.txt");
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    String versionRemota = http.getString();
+    versionRemota.trim();
+
+    if (esVersionSuperior(versionRemota, VERSION_FIRMWARE)) {
+      mqtt.publish("invernadero/estado/firmware", "Nueva versión disponible: " + versionRemota);
+      WiFiClient client;
+      httpUpdate.update(client, "http://192.168.1.30/index.php/s/ic2k8aePcapxdAn/download/firmware.bin");
+    } else {
+      mqtt.publish("invernadero/estado/firmware", "Firmware actualizado: " + VERSION_FIRMWARE);
+    }
+  } else {
+    mqtt.publish("invernadero/estado/firmware", "Error al comprobar versión remota");
+  }
+
+  http.end();
+}
+
+
+
+bool esVersionSuperior(String remota, String local) {
+  int rMayor, rMenor, rPatch;
+  int lMayor, lMenor, lPatch;
+
+  sscanf(remota.c_str(), "%d.%d.%d", &rMayor, &rMenor, &rPatch);
+  sscanf(local.c_str(), "%d.%d.%d", &lMayor, &lMenor, &lPatch);
+
+  if (rMayor > lMayor) return true;
+  if (rMayor == lMayor && rMenor > lMenor) return true;
+  if (rMayor == lMayor && rMenor == lMenor && rPatch > lPatch) return true;
+
+  return false;
+}
+
+

@@ -39,7 +39,7 @@ void pintarOLED(float humSueloPct, float t, float h,float nivelPct) {
   display.print("Nivel Deposito: "); display.print(nivelPct); display.print("%");
 
   display.setCursor(0,36);
-  display.print("Bomba: "); display.print(bombaOn ? "ON" : "OFF");
+  display.print("Version: "); display.print(VERSION_FIRMWARE);
 
   display.setCursor(0,48);
   display.print("Aire: ");
