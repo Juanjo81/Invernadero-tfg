@@ -56,7 +56,7 @@ void loop() {
   mantenerConexiones();
   mqtt.loop();
   gestionarOTA();
-  compruebaVersion();
+  compruebaVersion(millis());
 
   unsigned long ahora = millis();
 
@@ -76,7 +76,7 @@ void loop() {
 
       // Actualizar PID
       pidTemp.actualizar(temperaturaActual, temperaturaObjetivo);
-      pidHum.actualizar(humedadActual, humedadObjetivo);
+      pidHum.actualizar(sueloPct, humedadObjetivo);
 
       // Control proporcional por tiempo
       activarBombaPorPID(pidHum.output);

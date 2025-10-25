@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "v2.1.9"
+#define VERSION_FIRMWARE "2.2.0"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -22,6 +22,7 @@ const float ALTURA_TANQUE_CM  = 26.0;    // altura del depósito
 const float UMBRAL_NIVEL_MINIMO = 5.0;  // % mínimo para permitir riego
 
 const unsigned long INTERVALO_SENSORES = 5000; 
+
 #define DHTTYPE               DHT22      
 
 // =================== VARIABLES DE ESTADO ===================

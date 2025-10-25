@@ -1,4 +1,5 @@
 #include <ArduinoOTA.h>
+#include <WiFiClientSecure.h>
 
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>  
@@ -37,30 +38,62 @@ void gestionarOTA() {
   ArduinoOTA.handle();
 }
 
-void compruebaVersion() {
-  HTTPClient http;
-  http.begin("http://192.168.1.30/index.php/s/ic2k8aePcapxdAn/download/Version.txt");
-  int httpCode = http.GET();
+void compruebaVersion(unsigned long ahora) {
+  static unsigned long t_version = 0;
+  const unsigned long INTERVALO_VERSION = 86400000; // 24 horas
 
-  if (httpCode == 200) {
-    String versionRemota = http.getString();
-    versionRemota.trim();
+  // Ejecutar la primera vez o si ha pasado el intervalo
+  if (t_version == 0 || ahora - t_version >= INTERVALO_VERSION) {
+    t_version = ahora;
 
-    if (esVersionSuperior(versionRemota, VERSION_FIRMWARE)) {
-      mqtt.publish("invernadero/estado/firmware", "Nueva versión disponible: " + versionRemota);
-      WiFiClient client;
-      httpUpdate.update(client, "http://192.168.1.30/index.php/s/ic2k8aePcapxdAn/download/firmware.bin");
-    } else {
-      mqtt.publish("invernadero/estado/firmware", "Firmware actualizado: " + VERSION_FIRMWARE);
+    if (WiFi.status() != WL_CONNECTED) {
+      mqtt.publish("invernadero/estado/firmware", "WiFi no conectado");
+      return;
     }
-  } else {
-    mqtt.publish("invernadero/estado/firmware", "Error al comprobar versión remota");
+
+    WiFiClientSecure client;
+    client.setInsecure();  
+
+    HTTPClient http;
+    http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+    http.begin(client, "https://192.168.1.30/index.php/s/ic2k8aePcapxdAn/download/Version.txt");
+
+    int httpCode = http.GET();
+    mqtt.publish("invernadero/debug/http", ("Código HTTP: " + String(httpCode)).c_str());
+
+    if (httpCode == 200) {
+      String versionRemota = http.getString();
+      versionRemota.trim();
+
+      if (esVersionSuperior(versionRemota, VERSION_FIRMWARE)) {
+        String mensaje = "Nueva versión disponible: " + versionRemota + " | Actual: " + VERSION_FIRMWARE;
+        mqtt.publish("invernadero/estado/firmware", mensaje.c_str());
+
+        WiFiClientSecure updateClient;
+        updateClient.setInsecure();
+
+        t_httpUpdate_return resultado = httpUpdate.update(updateClient, "https://192.168.1.30/index.php/s/3G6FWaYwZCptrH9/download/firmware.bin");
+
+        if (resultado == HTTP_UPDATE_OK) {
+          mqtt.publish("invernadero/estado/firmware", "Actualización OTA completada con éxito. Reiniciando...");
+        } else {
+          String errorOTA = "Error en la actualización OTA. Código: " + String(resultado);
+          mqtt.publish("invernadero/estado/firmware", errorOTA.c_str());
+        }
+
+      } else {
+        String mensaje = "Versión remota: " + versionRemota + " | Actual: " + VERSION_FIRMWARE + " → No se actualiza";
+        mqtt.publish("invernadero/estado/firmware", mensaje.c_str());
+      }
+
+    } else {
+      String errorHTTP = "Error al comprobar versión remota. Código HTTP: " + String(httpCode);
+      mqtt.publish("invernadero/estado/firmware", errorHTTP.c_str());
+    }
+
+    http.end();
   }
-
-  http.end();
 }
-
-
 
 bool esVersionSuperior(String remota, String local) {
   int rMayor, rMenor, rPatch;
