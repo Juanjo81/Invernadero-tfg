@@ -21,7 +21,7 @@ class VistaModeloMQTT : ViewModel() {
     private val _conectadoMQTT = MutableStateFlow(false)
     val conectadoMQTT: StateFlow<Boolean> = _conectadoMQTT
 
-    private val _direccionIP = MutableStateFlow("invernaderotfg.duckdns.org")
+    private val _direccionIP = MutableStateFlow("invernaderotfg2.duckdns.org")
     val direccionIP: StateFlow<String> = _direccionIP
 
     private val _temperaturaAire = MutableStateFlow("0.0")
