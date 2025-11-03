@@ -9,11 +9,13 @@ void inicializarSensores();
 void inicializarPantalla();
 void inicializarRed();
 void inicializarPID();
-void activarBombaporPID();
-void activarVentiladorporPID();
+void activarBombaPorPID(float f);
+void activarVentiladorPorPID(float f);
 float leerNivel();
 bool verificarSensoresDuranteRiego();
-void compruebaVersion();
+void compruebaVersion(unsigned long tiempoActual);
+void gestionarOTA();
+void configurarOTA(const char* nombreDispositivo);
 
 extern Servo servoMotor;
 extern Servo servoMotor2;
@@ -68,9 +70,6 @@ void loop() {
       humedadActual = dht.readHumidity();
       nivelPct = leerNivel();
 
-      // Verificación preventiva de sensores
-      sistemaOK();
-
       publicarSensores(sueloPct, temperaturaActual, humedadActual, nivelPct);
       pintarOLED(sueloPct, temperaturaActual, humedadActual, nivelPct);
 
@@ -79,8 +78,10 @@ void loop() {
       pidHum.actualizar(sueloPct, humedadObjetivo);
 
       // Control proporcional por tiempo
+
       activarBombaPorPID(pidHum.output);
       activarVentiladorPorPID(pidTemp.output);
+
 
       // Control de errores durante riego manual o PID
       controlarRiegoActivo();

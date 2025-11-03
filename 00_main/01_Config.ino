@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.2.0"
+#define VERSION_FIRMWARE "2.2.1"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -20,6 +20,7 @@ const float SUELO_SECO        = 2600.0;  // valor de suelo seco
 const float SUELO_MOJADO        = 800.0;  // valor de suelo mojado
 const float ALTURA_TANQUE_CM  = 26.0;    // altura del depósito
 const float UMBRAL_NIVEL_MINIMO = 5.0;  // % mínimo para permitir riego
+const unsigned long TIEMPO_MAX_RIEGO = 10000; // 10 segundos
 
 const unsigned long INTERVALO_SENSORES = 5000; 
 

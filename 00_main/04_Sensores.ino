@@ -4,7 +4,6 @@
 bool sensorSueloOK = true;
 bool sensorTempOK  = true;
 bool sensorNivelOK = true;
-bool sistemaBloqueado = false;
 
 extern PubSubClient mqtt;
 extern float nivelPct;
@@ -20,28 +19,6 @@ unsigned long t_pub = 0;
 
 DHT dht(DHTPIN, DHTTYPE);
 
-
-bool sistemaOK() {
-  if (!verificarSensoresDuranteRiego()) {
-    if (!sistemaBloqueado) {
-      sistemaBloqueado = true;
-      mqtt.publish("invernadero/alerta/fallo", "Sistema bloqueado por fallo de sensor sensorrrrrrrrrrrrrrr");
-      gestionarEvento("alerta", "Sistema bloqueado por fallo de sensor");
-      mostrarEstadoBloqueo();
-    }
-    return false;
-  }
-
-  if (sistemaBloqueado) {
-    sistemaBloqueado = false;
-    mqtt.publish("invernadero/estado", "Sensores OK, sistema desbloqueado");
-    mostrarEstadoNormal();
-  }
-
-  return true;
-}
-
-
 void inicializarSensores() {
   pinMode(SUELO_PIN, INPUT);
   pinMode(ULTRASONIC_TRIG, OUTPUT);
@@ -51,7 +28,7 @@ void inicializarSensores() {
 
 float leerHumedadSuelo() {
   int raw = analogRead(SUELO_PIN);
-mqtt.publish("invernadero/alertas", (String("valor de raw: ") + raw).c_str());
+  //mqtt.publish("invernadero/alertas", (String("valor de raw: ") + raw).c_str());
 
 
   if (raw < 100 || raw > 4094) {
@@ -180,14 +157,34 @@ bool verificarSensorDHT() {
 
 // === Control de riego activo ===
 void controlarRiegoActivo() {
+  static const unsigned long TIEMPO_MAX_RIEGO = 15000; // 15 segundos
+  static unsigned long tInicioRiegoGlobal = 0;
+
+  unsigned long ahora = millis();
+
   if ((modoManual || regandoPID) && bombaOn) {
+    // ⏱️ Apagado por tiempo máximo en modo manual
+    if (modoManual && ahora - tInicioRiegoGlobal > TIEMPO_MAX_RIEGO) {
+      mqtt.publish("invernadero/debug/bloqueo", "Riego manual apagado por tiempo máximo");
+      gestionarEvento("alerta", "Riego manual apagado por seguridad (tiempo máximo)");
+      bombaApagar();
+      mostrarEstadoNormal();
+      return;
+    }
+
+    // 🔍 Supervisión de sensores
     if (!verificarSensoresDuranteRiego()) {
       mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor durante riego activo");
-      bombaApagar();
       gestionarEvento("alerta", "Riego interrumpido por fallo de sensor");
+      bombaApagar();
       mostrarEstadoBloqueo();
+    } else {
+      // ✅ Recuperación visual si sensores están bien
+      mostrarEstadoRiego();
     }
   }
 }
+
+
 
 
