@@ -61,7 +61,8 @@ void loop() {
   compruebaVersion(millis());
 
   unsigned long ahora = millis();
-
+  // Control de errores durante riego manual o PID
+  controlarRiegoActivo();
   // Control periódico de sensores
   if (ahora - t_sensores > INTERVALO_SENSORES) {
      
@@ -83,8 +84,7 @@ void loop() {
       activarVentiladorPorPID(pidTemp.output);
 
 
-      // Control de errores durante riego manual o PID
-      controlarRiegoActivo();
+
 
       t_sensores = ahora;
     }

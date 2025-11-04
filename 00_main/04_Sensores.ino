@@ -9,7 +9,6 @@ extern PubSubClient mqtt;
 extern float nivelPct;
 extern float humedadActual;
 extern float TemperaturaActual;
-extern const float UMBRAL_NIVEL_MINIMO;
 extern bool modoManual;
 extern bool regandoPID;
 extern bool bombaOn;
@@ -118,7 +117,7 @@ void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
 bool verificarSensoresDuranteRiego() {
 
   if (!verificarSensorNivel()) {
-    if (nivelPct <= UMBRAL_NIVEL_MINIMO){
+    if (nivelPct <= DISTANCIA_MIN_CM){
       gestionarEvento("alerta", "Riego interrumpido por nivel demasiado bajo");
     }else{
       gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
@@ -142,7 +141,7 @@ bool verificarSensoresDuranteRiego() {
 }
 
 bool verificarSensorNivel() {
-  return sensorNivelOK && nivelPct >= UMBRAL_NIVEL_MINIMO && nivelPct != -1.0;
+  return sensorNivelOK && nivelPct >= DISTANCIA_MIN_CM && nivelPct != -1.0;
 }
 
 bool verificarSensorSuelo() {
@@ -176,7 +175,7 @@ void controlarRiegoActivo() {
       mostrarEstadoBloqueo();
     } else {
       // Recuperación visual si sensores están bien
-      mostrarEstadoRiego();
+    mostrarEstadoNormal();
     }
   }
 }
