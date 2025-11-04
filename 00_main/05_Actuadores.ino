@@ -43,8 +43,6 @@ void inicializarActuadores() {
 }
 
 void bombaEncender() {
-  static unsigned long tInicioRiegoGlobal = 0;
-  static bool bombaActiva = false;
   unsigned long ahora = millis();
 
   if (!verificarSensoresDuranteRiego()) {
@@ -60,7 +58,6 @@ void bombaEncender() {
 
   bombaOn = true;
   modoManual = true;
-  bombaActiva = true;
   tInicioRiegoGlobal = ahora;
 
   mostrarEstadoRiego();
@@ -69,8 +66,6 @@ void bombaEncender() {
 
 
 void bombaApagar() {
-  static bool bombaManualActiva = false;
-  static unsigned long tInicioRiegoManual = 0;
 
   digitalWrite(CH1_IN, LOW);
   gestionarEvento("notificacion", "Riego Manual Finalizado");
@@ -78,8 +73,6 @@ void bombaApagar() {
 
   bombaOn = false;
   modoManual = false;
-  bombaManualActiva = false;
-  tInicioRiegoManual = 0;
 
   if (!verificarSensoresDuranteRiego()) {
     mostrarEstadoBloqueo();

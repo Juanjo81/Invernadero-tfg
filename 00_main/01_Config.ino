@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.2.1"
+#define VERSION_FIRMWARE "2.2.2"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -18,9 +18,9 @@
 // =================== CONSTANTES FÍSICAS ===================
 const float SUELO_SECO        = 2600.0;  // valor de suelo seco
 const float SUELO_MOJADO        = 800.0;  // valor de suelo mojado
-const float ALTURA_TANQUE_CM  = 26.0;    // altura del depósito
-const float UMBRAL_NIVEL_MINIMO = 5.0;  // % mínimo para permitir riego
-const unsigned long TIEMPO_MAX_RIEGO = 10000; // 10 segundos
+const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
+const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
+const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos
 
 const unsigned long INTERVALO_SENSORES = 5000; 
 
@@ -33,6 +33,8 @@ float temperaturaActual = 0.0;
 float humedadActual = 0.0;
 float temperaturaObjetivo = 35.0;
 float humedadObjetivo = 0.0;
+
+static unsigned long tInicioRiegoGlobal = 0;
 
 
 // =================== TÓPICOS MQTT ===================

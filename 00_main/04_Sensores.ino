@@ -95,8 +95,6 @@ float leerNivel() {
   //mqtt.publish("invernadero/debug/nivel/estado_sensor", "OK");
 
   // Calcular porcentaje de nivel
-  const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
-  const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
 
   float nivelPct = ((DISTANCIA_MAX_CM - distancia) / (DISTANCIA_MAX_CM - DISTANCIA_MIN_CM)) * 100.0;
   nivelPct = constrain(nivelPct, 0.0, 100.0);
@@ -157,13 +155,11 @@ bool verificarSensorDHT() {
 
 // === Control de riego activo ===
 void controlarRiegoActivo() {
-  static const unsigned long TIEMPO_MAX_RIEGO = 15000; // 15 segundos
-  static unsigned long tInicioRiegoGlobal = 0;
 
   unsigned long ahora = millis();
 
   if ((modoManual || regandoPID) && bombaOn) {
-    // ⏱️ Apagado por tiempo máximo en modo manual
+    // Apagado por tiempo máximo en modo manual
     if (modoManual && ahora - tInicioRiegoGlobal > TIEMPO_MAX_RIEGO) {
       mqtt.publish("invernadero/debug/bloqueo", "Riego manual apagado por tiempo máximo");
       gestionarEvento("alerta", "Riego manual apagado por seguridad (tiempo máximo)");
@@ -172,14 +168,14 @@ void controlarRiegoActivo() {
       return;
     }
 
-    // 🔍 Supervisión de sensores
+    // Supervisión de sensores
     if (!verificarSensoresDuranteRiego()) {
       mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor durante riego activo");
       gestionarEvento("alerta", "Riego interrumpido por fallo de sensor");
       bombaApagar();
       mostrarEstadoBloqueo();
     } else {
-      // ✅ Recuperación visual si sensores están bien
+      // Recuperación visual si sensores están bien
       mostrarEstadoRiego();
     }
   }

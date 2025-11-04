@@ -32,7 +32,7 @@ void activarBombaPorPID(float salidaPID) {
 
   unsigned long ahora = millis();
 
-  // 🚫 Ignorar si modo manual activo
+  // Ignorar si modo manual activo
   if (modoManual) {
     digitalWrite(CH1_IN, bombaOn ? HIGH : LOW);
     if (bombaOn && !bombaActiva) {
@@ -44,7 +44,7 @@ void activarBombaPorPID(float salidaPID) {
     return;
   }
 
-  // 🔍 Verificaciones de seguridad
+  // Verificaciones de seguridad
   if (!verificarSensoresDuranteRiego()) {
     mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor, riego PID bloqueado");
     gestionarEvento("alerta", "Riego PID bloqueado por fallo de sensor");
@@ -62,7 +62,7 @@ void activarBombaPorPID(float salidaPID) {
 
   if (salidaPID <= 0 || regandoPID) return;
 
-  // 🧠 Evaluación PID cada 5 segundos
+  // Evaluación PID cada 5 segundos
   if (ahora - tEvaluacion >= 5000) {
     tEvaluacion = ahora;
     duracionRiego = calcularTiempoPID(salidaPID, 5000);
@@ -91,7 +91,7 @@ void activarBombaPorPID(float salidaPID) {
     }
   }
 
-  // ⏹️ Supervisión de apagado por duración cumplida
+  // Supervisión de apagado por duración cumplida
   if (regandoPID && ahora - tInicioRiego >= duracionRiego) {
     digitalWrite(CH1_IN, LOW);
     mostrarEstadoNormal();
