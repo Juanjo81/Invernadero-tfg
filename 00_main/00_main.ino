@@ -16,6 +16,7 @@ bool verificarSensoresDuranteRiego();
 void compruebaVersion(unsigned long tiempoActual);
 void gestionarOTA();
 void configurarOTA(const char* nombreDispositivo);
+void actualizarEstadoVisual();
 
 extern Servo servoMotor;
 extern Servo servoMotor2;
@@ -63,6 +64,7 @@ void loop() {
   unsigned long ahora = millis();
   // Control de errores durante riego manual o PID
   controlarRiegoActivo();
+  actualizarEstadoVisual();
   // Control periódico de sensores
   if (ahora - t_sensores > INTERVALO_SENSORES) {
      

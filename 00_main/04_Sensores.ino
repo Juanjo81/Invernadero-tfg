@@ -12,6 +12,7 @@ extern float TemperaturaActual;
 extern bool modoManual;
 extern bool regandoPID;
 extern bool bombaOn;
+extern bool ledsEncendidos;
 
 
 unsigned long t_pub = 0;
@@ -163,7 +164,7 @@ void controlarRiegoActivo() {
       mqtt.publish("invernadero/debug/bloqueo", "Riego manual apagado por tiempo máximo");
       gestionarEvento("alerta", "Riego manual apagado por seguridad (tiempo máximo)");
       bombaApagar();
-      mostrarEstadoNormal();
+     // mostrarEstadoNormal();
       return;
     }
 
@@ -172,13 +173,41 @@ void controlarRiegoActivo() {
       mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor durante riego activo");
       gestionarEvento("alerta", "Riego interrumpido por fallo de sensor");
       bombaApagar();
-      mostrarEstadoBloqueo();
+    //  mostrarEstadoBloqueo();
     } else {
       // Recuperación visual si sensores están bien
-    mostrarEstadoNormal();
+    //mostrarEstadoNormal();
     }
   }
+    // Chequeo de recuperación visual cuando no hay riego
+  /*if (!bombaOn && verificarSensoresDuranteRiego()) {
+    mostrarEstadoNormal();  // se pone verde si todo está OK
+  }*/
+
 }
+
+void actualizarEstadoVisual() {
+  // Prioridad absoluta al fallo de sensores
+  if (!verificarSensoresDuranteRiego()) {
+    mostrarEstadoBloqueo();  // rojo
+    return;
+  }
+
+  //  Si no hay fallo, respetamos el modo usuario
+  if (ledsEncendidos) return;
+
+  //  Estado automático si no hay modo usuario
+  if (bombaOn) {
+    mostrarEstadoRiego();    // azul
+  } else {
+    mostrarEstadoNormal();   // verde
+  }
+}
+
+
+
+
+
 
 
 

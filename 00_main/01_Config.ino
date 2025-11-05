@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.2.2"
+#define VERSION_FIRMWARE "2.2.4"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -33,6 +33,7 @@ float temperaturaActual = 0.0;
 float humedadActual = 0.0;
 float temperaturaObjetivo = 35.0;
 float humedadObjetivo = 0.0;
+bool modoUsuarioLED = false;
 
 static unsigned long tInicioRiegoGlobal = 0;
 

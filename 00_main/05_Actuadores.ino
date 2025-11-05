@@ -3,7 +3,6 @@
 // ====== VARIABLES ======
 bool bombaOn = false;
 bool ventiladorOn = false;
-bool ledsEncendidos = true;
 bool tapaAbierta = false;
 extern PubSubClient mqtt;
 
@@ -48,7 +47,7 @@ void bombaEncender() {
   if (!verificarSensoresDuranteRiego()) {
     gestionarEvento("alerta", "Intento de riego manual bloqueado por sistema en estado de fallo");
     mqtt.publish("invernadero/debug/bloqueo", "Riego manual bloqueado: sistema en estado de fallo");
-    mostrarEstadoBloqueo();
+   // mostrarEstadoBloqueo();
     return;
   }
 
@@ -60,7 +59,7 @@ void bombaEncender() {
   modoManual = true;
   tInicioRiegoGlobal = ahora;
 
-  mostrarEstadoRiego();
+  //mostrarEstadoRiego();
 }
 
 
@@ -74,11 +73,11 @@ void bombaApagar() {
   bombaOn = false;
   modoManual = false;
 
-  if (!verificarSensoresDuranteRiego()) {
+  /*if (!verificarSensoresDuranteRiego()) {
     mostrarEstadoBloqueo();
   } else {
     mostrarEstadoNormal();
-  }
+  }*/
 }
 
 void ventiladorEncender() { digitalWrite(FAN_CTRL_PIN, HIGH); gestionarEvento("Notificacion", "Ventilacion Manual Iniciada");  ventiladorOn = true;modoManualVentilador=true;}

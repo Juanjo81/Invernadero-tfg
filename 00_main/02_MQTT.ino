@@ -4,7 +4,8 @@ extern bool modoManual;
 extern bool modoManualVentilador;
 extern int umbralEncender;
 extern int umbralApagar;
-extern bool ledsEncendidos;
+bool ledsEncendidos=true;
+bool ledsManual=false;
 extern int ultimoR, ultimoG, ultimoB;
 extern bool tapaAbierta;
 extern int umbralVentilarEncender;
@@ -72,16 +73,19 @@ void onMqtt(char* topic, byte* payload, unsigned int len){
   int r, g, b;
   if (parseHexColor(msg, r, g, b) || (sscanf(msg.c_str(), "%d,%d,%d", &r, &g, &b) == 3)) {
     ledsEncendidos = true;
+    ledsManual = true;
     aplicarColor(r, g, b);
   }
 }
 else if (String(topic) == T_LED_POWER){
   if (msg.equalsIgnoreCase("OFF")) {
     ledsEncendidos = false;
+    ledsManual = false;
     aplicarColor(ultimoR, ultimoG, ultimoB);
   }
   else if (msg.equalsIgnoreCase("ON")) {
     ledsEncendidos = true;
+    ledsManual = false;
     aplicarColor(ultimoR, ultimoG, ultimoB);
   }
 }
