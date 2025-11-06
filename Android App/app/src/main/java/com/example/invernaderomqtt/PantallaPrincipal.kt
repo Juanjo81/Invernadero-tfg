@@ -2,12 +2,17 @@ package com.example.invernaderomqtt.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.content.MediaType.Companion.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,10 +25,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role.Companion.Image
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.invernaderomqtt.R
 import com.example.invernaderomqtt.VistaModeloMQTT
 import kotlinx.coroutines.delay
 import kotlin.math.PI
@@ -97,17 +106,27 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                TarjetaSensor(
-                    titulo = "Humedad Aire",
-                    valor = "${humedad}%",
-                    color = obtenerColorAgua(humedad.toFloat()),
-                    topic = "invernadero/aire/humedad",
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // 📷 Tarjeta de cámara
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clickable { navController.navigate("camara") },
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = 4.dp  // ✅ esto es un Dp
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.invernadero_foto),
+                        contentDescription = "Vista del invernadero",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
             }
 
-            // 🟦 Columna derecha
+
+                // 🟦 Columna derecha
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)

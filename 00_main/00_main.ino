@@ -81,12 +81,8 @@ void loop() {
       pidHum.actualizar(sueloPct, humedadObjetivo);
 
       // Control proporcional por tiempo
-
       activarBombaPorPID(pidHum.output);
       activarVentiladorPorPID(pidTemp.output);
-
-
-
 
       t_sensores = ahora;
     }

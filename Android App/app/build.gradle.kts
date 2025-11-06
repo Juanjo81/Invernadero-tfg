@@ -54,6 +54,7 @@ android {
         }
     }
     dependencies {
+        implementation("org.videolan.android:libvlc-all:3.5.1")
         implementation(libs.androidx.core.ktx)
         implementation(libs.androidx.lifecycle.runtime.ktx)
         implementation(libs.androidx.activity.compose) // <--- ADD THIS LINE
@@ -83,4 +84,5 @@ android {
 dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.ui)
 }
