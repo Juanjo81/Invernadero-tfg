@@ -54,6 +54,7 @@ android {
         }
     }
     dependencies {
+        implementation("com.google.accompanist:accompanist-systemuicontroller:0.30.1")
         implementation("org.videolan.android:libvlc-all:3.5.1")
         implementation(libs.androidx.core.ktx)
         implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -88,4 +89,5 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.appcompat)
 }

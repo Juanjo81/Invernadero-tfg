@@ -8,13 +8,21 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.darkColors
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
 import com.example.invernaderomqtt.navigation.NavegacionApp
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.ui.graphics.Color
 
 class ActividadPrincipal : ComponentActivity() {
 
@@ -22,7 +30,7 @@ class ActividadPrincipal : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Pedir permiso de notificaciones en Android 13+
+        // Pedir permiso de notificaciones en Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -37,6 +45,12 @@ class ActividadPrincipal : ComponentActivity() {
             }
         }
 
+        // Permitir que Compose dibuje detrás de las barras del sistema
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Forzar modo oscuro en toda la app
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+
         setContent {
             val controladorNavegacion = rememberNavController()
             val vistaModeloMQTT = VistaModeloMQTT()
@@ -45,16 +59,40 @@ class ActividadPrincipal : ComponentActivity() {
                 vistaModeloMQTT.inicializarMQTT(applicationContext)
             }
 
-            MaterialTheme {
-                NavegacionApp(
-                    controlNavegacion = controladorNavegacion,
-                    vistaModelo = vistaModeloMQTT
+            // Oscurecer barras del sistema
+            val systemUiController = rememberSystemUiController()
+            SideEffect {
+                systemUiController.setSystemBarsColor(
+                    color = Color.Black,
+                    darkIcons = false // texto blanco
                 )
+            }
+
+            // Tema oscuro completo
+            MaterialTheme(
+                colors = darkColors(
+                    primary = Color(0xFF2E7D32),
+                    background = Color.Black,
+                    surface = Color.Black,
+                    onPrimary = Color.White,
+                    onBackground = Color.White,
+                    onSurface = Color.White
+                )
+            ) {
+                // Fondo negro global
+                Box(modifier = androidx.compose.ui.Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)) {
+                    NavegacionApp(
+                        controlNavegacion = controladorNavegacion,
+                        vistaModelo = vistaModeloMQTT
+                    )
+                }
             }
         }
     }
 
-    // ✅ Manejar respuesta del usuario al permiso
+    // Manejar respuesta del usuario al permiso
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

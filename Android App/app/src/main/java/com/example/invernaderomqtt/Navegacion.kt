@@ -4,6 +4,7 @@ import android.net.Uri
 import android.view.SurfaceView
 import android.widget.Button
 import android.widget.VideoView
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
@@ -53,7 +56,7 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
     val ventilacionActiva = vistaModelo.ventilacionEncendida.collectAsState().value
     val puertaAbierta = vistaModelo.puertaAbierta.collectAsState().value
     val bombillaEncendida = vistaModelo.bombillaEncendida.collectAsState().value
-    val colorTarjeta = Color(0xFF2E7D32) // o el color que uses
+    val colorTarjeta = Color(0xFF1A1A1A) // o el color que uses
 
     Scaffold(
         bottomBar = {
@@ -65,7 +68,8 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
                 bombillaEncendida = bombillaEncendida,
                 colorTarjeta = colorTarjeta
             )
-        }
+        },
+        containerColor = Color.Black // ← fondo oscuro para toda la pantalla
     ) { padding ->
         NavHost(
             navController = controlNavegacion,
@@ -88,6 +92,7 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
             }
         }
     }
+
 }
 
 @Composable
@@ -135,10 +140,16 @@ fun MenuActuadores(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding() // ✅ sube todo el bloque por encima de los botones del sistema
-            .padding(bottom = 8.dp), // pequeño margen extra opcional
-        elevation = 8.dp,
-        shape = RectangleShape,
+            .wrapContentHeight()
+            .navigationBarsPadding()
+            .padding(bottom = 8.dp)
+            .border(
+                width = 2.dp,
+                color = Color.White,
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+            ),
+        elevation = 12.dp,
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
         backgroundColor = colorTarjeta
     ) {
         Column(
@@ -147,12 +158,6 @@ fun MenuActuadores(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Actuadores Manuales",
-                color = Color.White,
-                fontSize = 18.sp
-            )
-
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
