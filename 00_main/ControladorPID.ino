@@ -10,7 +10,7 @@ const float KpHum  = 3.0, KiHum  = 0.2, KdHum  = 0.8;
 
 // --- Variables externas ---
 extern float temperaturaActual;
-extern float humedadActual;
+extern float sueloPct;
 extern float temperaturaObjetivo;
 extern float humedadObjetivo;
 
@@ -46,8 +46,6 @@ void activarBombaPorPID(float salidaPID) {
 
   // Verificaciones de seguridad
   if (!verificarSensoresDuranteRiego()) {
-    mqtt.publish("invernadero/debug/bloqueo", "Fallo de sensor, riego PID bloqueado");
-    gestionarEvento("alerta", "Riego PID bloqueado por fallo de sensor");
     mostrarEstadoBloqueo();
     return;
   }
@@ -60,22 +58,38 @@ void activarBombaPorPID(float salidaPID) {
     return;
   }
 
-  if (salidaPID <= 0 || regandoPID) return;
+  //  Evitar recalcular si ya está regando
+  if (regandoPID) {
+    // Supervisión de apagado
+    if (ahora - tInicioRiego >= duracionRiego) {
+      digitalWrite(CH1_IN, LOW);
+      mostrarEstadoNormal();
+      regandoPID = false;
+      bombaActiva = false;
+      bombaOn = false;
+      tCooldown = ahora;
+      gestionarEvento("notificacion", "Bomba desactivada tras ciclo PID");
+      mqtt.publish("invernadero/estado/bomba", "Desactivada tras ciclo PID");
+    }
+    return;
+  }
+
 
   // Evaluación PID cada 5 segundos
   if (ahora - tEvaluacion >= 5000) {
     tEvaluacion = ahora;
     duracionRiego = calcularTiempoPID(salidaPID, 5000);
 
-    mqtt.publish("invernadero/debug/activacion_pid", ("Condiciones OK, tiempo calculado: " + String(duracionRiego)).c_str());
+    //mqtt.publish("invernadero/debug/activacion_pid", ("Condiciones OK, tiempo calculado: " + String(duracionRiego)).c_str());
 
     if (duracionRiego > 0) {
       digitalWrite(CH1_IN, HIGH);
+      delay(50); // estabilización sensor
       mostrarEstadoRiego();
       gestionarEvento("notificacion", "Bomba activada por PID");
       mqtt.publish("invernadero/estado/bomba", "Activada por PID");
 
-      String json = "{\"hum_actual\":" + String(humedadActual) +
+      String json = "{\"hum_actual\":" + String(sueloPct) +
                     ",\"hum_objetivo\":" + String(humedadObjetivo) + "}";
       mqtt.publish("invernadero/evento/humedad", json.c_str());
 
@@ -86,12 +100,12 @@ void activarBombaPorPID(float salidaPID) {
     } else {
       digitalWrite(CH1_IN, LOW);
       mostrarEstadoNormal();
-      mqtt.publish("invernadero/estado/bomba", "No activada, tiempo de riego = 0");
-      gestionarEvento("notificacion", "Bomba no activada por PID");
+      //mqtt.publish("invernadero/estado/bomba", "No activada, tiempo de riego = 0");
+      //gestionarEvento("notificacion", "Bomba no activada por PID");
     }
   }
 
-  // Supervisión de apagado por duración cumplida
+  /*/ Supervisión de apagado por duración cumplida
   if (regandoPID && ahora - tInicioRiego >= duracionRiego) {
     digitalWrite(CH1_IN, LOW);
     mostrarEstadoNormal();
@@ -101,7 +115,7 @@ void activarBombaPorPID(float salidaPID) {
     tCooldown = ahora;
     gestionarEvento("notificacion", "Bomba desactivada tras ciclo PID");
     mqtt.publish("invernadero/estado/bomba", "Desactivada tras ciclo PID");
-  }
+  }*/
 }
 
 // --- Activación ventilador por PID temperatura ---

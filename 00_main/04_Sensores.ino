@@ -5,10 +5,15 @@ bool sensorSueloOK = true;
 bool sensorTempOK  = true;
 bool sensorNivelOK = true;
 
+bool falloSensorNivel = false;
+bool falloSensorSuelo = false;
+bool falloSensorDHT = false;
+
 extern PubSubClient mqtt;
 extern float nivelPct;
 extern float humedadActual;
 extern float TemperaturaActual;
+extern float sueloPct;
 extern bool modoManual;
 extern bool regandoPID;
 extern bool bombaOn;
@@ -33,7 +38,7 @@ float leerHumedadSuelo() {
 
   if (raw < 100 || raw > 4094) {
     if (sensorSueloOK) {
-      mqtt.publish("invernadero/alertas", "Fallo en sensor de humedad del suelo", true);
+      mqtt.publish("invernadero/alertas", "sensores.ino:Fallo en sensor de humedad del suelo", true);
     }
     sensorSueloOK = false;
     return 0.0;
@@ -116,37 +121,67 @@ void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
 }
 
 bool verificarSensoresDuranteRiego() {
+  bool sensoresOK = true;
 
+  // Sensor de nivel
   if (!verificarSensorNivel()) {
-    if (nivelPct <= DISTANCIA_MIN_CM){
-      gestionarEvento("alerta", "Riego interrumpido por nivel demasiado bajo");
-    }else{
-      gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
+    if (!falloSensorNivel) {
+      falloSensorNivel = true;
+      if (nivelPct <= DISTANCIA_MIN_CM) {
+        gestionarEvento("alerta", "Riego interrumpido por nivel demasiado bajo");
+      } else {
+        gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de nivel");
+      }
+      mqtt.publish("invernadero/debug/bloqueo", "Sensor de nivel fuera de rango");
     }
-    return false;
+    sensoresOK = false;
+  } else {
+    if (falloSensorNivel) {
+      falloSensorNivel = false;
+      mqtt.publish("invernadero/debug/recuperado", "Sensor de nivel recuperado");
+    }
   }
 
+  // Sensor de suelo
   if (!verificarSensorSuelo()) {
-    mqtt.publish("invernadero/debug/bloqueo", "Sensor de humedad del suelo fuera de rango");
-    gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de humedad del suelo");
-    return false;
+    if (!falloSensorSuelo) {
+      falloSensorSuelo = true;
+      gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de humedad del suelo");
+      mqtt.publish("invernadero/debug/bloqueo", "Sensor de humedad del suelo fuera de rango");
+    }
+    sensoresOK = false;
+  } else {
+    if (falloSensorSuelo) {
+      falloSensorSuelo = false;
+      mqtt.publish("invernadero/debug/recuperado", "Sensor de humedad del suelo recuperado");
+    }
   }
 
+  // Sensor DHT
   if (!verificarSensorDHT()) {
-    mqtt.publish("invernadero/debug/bloqueo", "Sensor DHT fuera de rango");
-    gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de temperatura/humedad");
-    return false;
+    if (!falloSensorDHT) {
+      falloSensorDHT = true;
+      gestionarEvento("alerta", "Riego interrumpido por fallo en sensor de temperatura/humedad");
+      mqtt.publish("invernadero/debug/bloqueo", "Sensor DHT fuera de rango");
+    }
+    sensoresOK = false;
+  } else {
+    if (falloSensorDHT) {
+      falloSensorDHT = false;
+      mqtt.publish("invernadero/debug/recuperado", "Sensor DHT recuperado");
+    }
   }
 
-  return true;
+  return sensoresOK;
 }
+
 
 bool verificarSensorNivel() {
   return sensorNivelOK && nivelPct >= DISTANCIA_MIN_CM && nivelPct != -1.0;
 }
 
 bool verificarSensorSuelo() {
-  return sensorSueloOK && humedadActual >= 1.0 && humedadActual <= 100.0;
+  return sensorSueloOK && sueloPct >= 1.0 && sueloPct <= 100.0;
 }
 
 bool verificarSensorDHT() {
