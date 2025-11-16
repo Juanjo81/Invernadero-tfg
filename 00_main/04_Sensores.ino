@@ -25,7 +25,8 @@ unsigned long t_pub = 0;
 DHT dht(DHTPIN, DHTTYPE);
 
 void inicializarSensores() {
-  pinMode(SUELO_PIN, INPUT);
+  pinMode(SUELO_PIN, INPUT);  
+  pinMode(SUELO_PIN2, INPUT);
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
   dht.begin();
@@ -33,8 +34,9 @@ void inicializarSensores() {
 
 float leerHumedadSuelo() {
   int raw = analogRead(SUELO_PIN);
-  //mqtt.publish("invernadero/alertas", (String("valor de raw: ") + raw).c_str());
-
+  int raw2 = analogRead(SUELO_PIN2);
+  mqtt.publish("invernadero/alertas", (String("valor de raw: ") + raw).c_str());
+  mqtt.publish("invernadero/alertas", (String("valor de raw2: ") + raw2).c_str());
 
   if (raw < 100 || raw > 4094) {
     if (sensorSueloOK) {
@@ -229,7 +231,7 @@ void actualizarEstadoVisual() {
   }
 
   //  Si no hay fallo, respetamos el modo usuario
-  if (ledsEncendidos) return;
+  if (ledsManual) return;
 
   //  Estado automático si no hay modo usuario
   if (bombaOn) {

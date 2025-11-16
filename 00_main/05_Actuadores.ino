@@ -1,11 +1,11 @@
 #include <ESP32Servo.h>      
 #include <PubSubClient.h>     
 // ====== VARIABLES ======
-bool bombaOn = false;
+
 bool ventiladorOn = false;
 bool tapaAbierta = false;
 extern PubSubClient mqtt;
-
+extern bool bombaOn;
 
 bool modoManual = false;
 bool modoManualVentilador = false;

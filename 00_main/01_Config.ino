@@ -5,6 +5,7 @@
 #define DHTPIN           4
 #define DHTTYPE      DHT22
 #define SUELO_PIN       34
+#define SUELO_PIN2      35
 #define ULTRASONIC_TRIG 12
 #define ULTRASONIC_ECHO 33
 #define CH1_IN          23
@@ -17,7 +18,7 @@
 
 // =================== CONSTANTES FÍSICAS ===================
 const float SUELO_SECO        = 2600.0;  // valor de suelo seco
-const float SUELO_MOJADO        = 800.0;  // valor de suelo mojado
+const float SUELO_MOJADO        = 500.0;  // valor de suelo mojado
 const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
 const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
 const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos
@@ -27,6 +28,7 @@ const unsigned long INTERVALO_SENSORES = 5000;
 #define DHTTYPE               DHT22      
 
 // =================== VARIABLES DE ESTADO ===================
+bool bombaOn = false;
 float nivelPct = 0.0;
 float sueloPct =0.0;
 float temperaturaActual = 0.0;
