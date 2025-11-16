@@ -1,9 +1,15 @@
+include(":app")
+
 pluginManagement {
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
+    }
+
 }
 
 dependencyResolutionManagement {
@@ -13,6 +19,3 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-
-rootProject.name = "InvernaderoMQTT"
-include(":app")

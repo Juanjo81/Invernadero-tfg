@@ -1,10 +1,15 @@
-dependencies {
+// C:/Users/vakil/Documents/GitHub/Invernadero-tfg/Android App/build.gradle.kts
+buildscript {
+    dependencies {
+        // Updated to a stable version matching what you have in libs.versions.toml
+        classpath("com.android.tools.build:gradle:8.13.1")
+        // Updated to a version compatible with AGP 8.13.1
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21")
+    }
 
-}// Top-level build file where you can add configuration options common to all sub-projects/modules.
-plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-
+repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
-

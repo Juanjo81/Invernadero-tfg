@@ -1,9 +1,7 @@
 package com.example.invernaderomqtt.navigation
 
 import android.net.Uri
-import android.view.SurfaceView
-import android.widget.Button
-import android.widget.VideoView
+import android.view.Surface
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,18 +15,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
+import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.DoorFront
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material3.Card
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.invernaderomqtt.Configuracion
 import com.example.invernaderomqtt.ui.PantallaPrincipal
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
@@ -41,14 +39,12 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.invernaderomqtt.R
-import com.example.invernaderomqtt.VistaModeloMQTT
+import com.example.invernaderomqtt.ui.principal.VistaModeloMQTT
 import com.example.invernaderomqtt.ui.BotonControl
+import com.example.invernaderomqtt.ui.configuracion.ConfiguracionScreen
+import com.example.invernaderomqtt.ui.historial.PantallaHistorial
 
 @Composable
 fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModeloMQTT) {
@@ -79,21 +75,37 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
             composable("principal") {
                 PantallaPrincipal(navController = controlNavegacion, vistaModelo = vistaModelo)
             }
-            composable("configuracion") {
-                Configuracion.ConfiguracionScreen(
-                    temperaturaObjetivo = vistaModelo.temperaturaObjetivo.collectAsState().value,
-                    humedadObjetivo = vistaModelo.humedadObjetivo.collectAsState().value,
-                    onTemperaturaChange = { vistaModelo.setTemperaturaObjetivo(it) },
-                    onHumedadChange = { vistaModelo.setHumedadObjetivo(it) }
-                )
+
+            composable("configuracion_pid") {
+                ConfiguracionScreen()
             }
+
+
+
+
             composable("camara") {
                 CamaraStreamScreen(vistaModelo = vistaModelo)
+            }
+
+            composable("historial_eventos") {
+                PantallaHistorial()
+            }
+
+            composable("configuracion_servidor") {
+                //ConfiguracionServidorScreen()
+            }
+
+            composable("about") {
+                //PantallaAbout()
+            }
+
+            composable("configuracion_pid") {
+                ConfiguracionScreen()
             }
         }
     }
 
-}
+    }
 
 @Composable
 fun CamaraStreamScreen(vistaModelo: VistaModeloMQTT? = null) {
@@ -164,18 +176,19 @@ fun MenuActuadores(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                BotonControl(Icons.Default.WaterDrop, "Bomba", riegoActivo) {
+                BotonControl(Icons.Default.Opacity, "Bomba", riegoActivo) {
                     vistaModelo.alternarRiego()
                 }
-                BotonControl(Icons.Default.Air, "Ventilador", ventilacionActiva) {
+                BotonControl(Icons.Default.Cloud, "Ventilador", ventilacionActiva) {
                     vistaModelo.alternarVentilacion()
                 }
-                BotonControl(Icons.Default.DoorFront, "Puerta", puertaAbierta) {
+                BotonControl(Icons.Default.MeetingRoom, "Puerta", puertaAbierta) {
                     vistaModelo.alternarPuerta()
                 }
                 BotonControl(Icons.Default.Lightbulb, "Luz", bombillaEncendida) {
                     vistaModelo.alternarLuz()
                 }
+
             }
         }
     }

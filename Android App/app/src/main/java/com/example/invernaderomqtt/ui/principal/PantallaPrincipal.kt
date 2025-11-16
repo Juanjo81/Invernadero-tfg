@@ -1,12 +1,9 @@
 package com.example.invernaderomqtt.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.content.MediaType.Companion.Image
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,32 +11,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role.Companion.Image
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.invernaderomqtt.R
-import com.example.invernaderomqtt.VistaModeloMQTT
-import kotlinx.coroutines.delay
+import com.example.invernaderomqtt.ui.principal.VistaModeloMQTT
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.atan2
 
 
 @Composable
@@ -64,6 +48,7 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+
     ModalDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -76,11 +61,29 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
                 Text("Menú", color = Color.White, fontSize = 20.sp)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                DrawerItem("Configuración PID") { /* TODO */ }
-                DrawerItem("Versión") { /* TODO */ }
-                DrawerItem("About") { /* TODO */ }
-                DrawerItem("Servidor") { /* TODO */ }
-                DrawerItem("Salir") { /* TODO */ }
+                DrawerItem("Configuración PID") {
+                    navController.navigate("configuracion_pid")
+                    scope.launch { drawerState.close() }
+                }
+
+                DrawerItem("Historial Eventos") {
+                    navController.navigate("historial_eventos")
+                    scope.launch { drawerState.close() }
+                }
+
+                DrawerItem("Configuración Servidor") {
+                    navController.navigate("configuracion_servidor")
+                    scope.launch { drawerState.close() }
+                }
+
+                DrawerItem("About") {
+                    navController.navigate("about")
+                    scope.launch { drawerState.close() }
+                }
+
+                DrawerItem("Salir") {
+                    scope.launch { drawerState.close() }
+                }
             }
         },
         content = {
@@ -91,12 +94,12 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
                     .background(Color.Black)
                     .padding(16.dp)
             ) {
-                // Botón de menú lateral
                 IconButton(onClick = {
                     scope.launch { drawerState.open() }
                 }) {
                     Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = Color.White)
                 }
+
 
                 Text(
                     text = if (conectado) "Conectado MQTT: $direccionIP" else "No conectado",

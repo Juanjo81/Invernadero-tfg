@@ -1,7 +1,9 @@
-package com.example.invernaderomqtt
+package com.example.invernaderomqtt.ui.principal
 
+import android.Manifest
 import android.content.Context
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import com.hivemq.client.mqtt.MqttClient
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
-import com.hivemq.client.mqtt.datatypes.MqttTopic
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient
 import mostrarNotificacion
 import java.nio.charset.StandardCharsets
@@ -89,15 +90,15 @@ class VistaModeloMQTT : ViewModel() {
             "invernadero/objetivos/humedad"
         )
 
-        clienteMQTT.publishes(MqttGlobalPublishFilter.ALL) @androidx.annotation.RequiresPermission(
-            android.Manifest.permission.POST_NOTIFICATIONS
-        ) { mensaje ->
+        clienteMQTT.publishes(MqttGlobalPublishFilter.ALL) { mensaje ->
             val topic = mensaje.topic.toString()
             val payload = mensaje.payload.map { buffer ->
                 val bytes = ByteArray(buffer.remaining())
                 buffer.get(bytes)
                 String(bytes, StandardCharsets.UTF_8)
             }.orElse(null) ?: return@publishes
+
+            Log.d("MQTT", "Mensaje recibido en $topic: $payload")
 
             when (topic) {
                 "invernadero/aire/temperatura" -> _temperaturaAire.value = payload
@@ -106,11 +107,10 @@ class VistaModeloMQTT : ViewModel() {
                 "invernadero/tanque/nivel" -> _nivelTanque.value = payload
                 "invernadero/bomba/state" -> _riegoEncendido.value = payload == "ON"
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
-                "invernadero/objetivos/temp" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
-                "invernadero/objetivos/hum" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
-                "invernadero/alertas",-> mostrarNotificacion(context, "Alerta del invernadero", payload)
-                "invernadero/notificaciones" -> mostrarNotificacion(context, "Notificacion", payload)
-
+                "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
+                "invernadero/objetivos/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
+                "invernadero/alertas" -> mostrarNotificacion(context, "Alerta del invernadero", payload)
+                "invernadero/notificaciones" -> mostrarNotificacion(context, "Notificación", payload)
             }
         }
 

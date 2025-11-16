@@ -1,4 +1,4 @@
-package com.example.invernaderomqtt
+package com.example.invernaderomqtt.ui.principal
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -16,13 +16,14 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
 import com.example.invernaderomqtt.navigation.NavegacionApp
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import androidx.compose.ui.graphics.Color
 
 class ActividadPrincipal : ComponentActivity() {
 
@@ -63,7 +64,7 @@ class ActividadPrincipal : ComponentActivity() {
             val systemUiController = rememberSystemUiController()
             SideEffect {
                 systemUiController.setSystemBarsColor(
-                    color = Color.Black,
+                    color = Color.Companion.Black,
                     darkIcons = false // texto blanco
                 )
             }
@@ -72,17 +73,19 @@ class ActividadPrincipal : ComponentActivity() {
             MaterialTheme(
                 colors = darkColors(
                     primary = Color(0xFF2E7D32),
-                    background = Color.Black,
-                    surface = Color.Black,
-                    onPrimary = Color.White,
-                    onBackground = Color.White,
-                    onSurface = Color.White
+                    background = Color.Companion.Black,
+                    surface = Color.Companion.Black,
+                    onPrimary = Color.Companion.White,
+                    onBackground = Color.Companion.White,
+                    onSurface = Color.Companion.White
                 )
             ) {
                 // Fondo negro global
-                Box(modifier = androidx.compose.ui.Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)) {
+                Box(
+                    modifier = Modifier.Companion
+                        .fillMaxSize()
+                        .background(Color.Companion.Black)
+                ) {
                     NavegacionApp(
                         controlNavegacion = controladorNavegacion,
                         vistaModelo = vistaModeloMQTT
