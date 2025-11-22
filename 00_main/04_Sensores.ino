@@ -32,12 +32,26 @@ void inicializarSensores() {
   dht.begin();
 }
 
+float leerHumedadSuelo() {// Calibración individual por sensor
+
+// Parámetros de suavizado
+const float ALPHA = 0.1;            // Factor de suavizado (0.1 = muy suave)
+const float CAMBIO_MINIMO = 1.0;    // Umbral mínimo para publicar
+
+// Estado interno
+float humedadSuavizada1 = 0.0;
+float humedadSuavizada2 = 0.0;
+
 float leerHumedadSuelo() {
+  // Lecturas crudas
   int raw = analogRead(SUELO_PIN);
   int raw2 = analogRead(SUELO_PIN2);
+
+  // Trazabilidad cruda
   mqtt.publish("invernadero/alertas", (String("valor de raw: ") + raw).c_str());
   mqtt.publish("invernadero/alertas", (String("valor de raw2: ") + raw2).c_str());
 
+  // Verificación de rango válido para sensor 1
   if (raw < 100 || raw > 4094) {
     if (sensorSueloOK) {
       mqtt.publish("invernadero/alertas", "sensores.ino:Fallo en sensor de humedad del suelo", true);
@@ -48,10 +62,38 @@ float leerHumedadSuelo() {
 
   sensorSueloOK = true;
 
-  // Normalización entre mojado y seco
-  float pct = ((SUELO_SECO - raw) / (SUELO_SECO - SUELO_MOJADO)) * 100.0;
-  return constrain(pct, 0.0, 100.0);
+  // Normalización individual
+  float pct1 = ((SUELO_SECO - raw) / (SUELO_SECO - SUELO_MOJADO)) * 100.0;
+  float pct2 = ((SUELO_SECO2 - raw2) / (SUELO_SECO2 - SUELO_MOJADO2)) * 100.0;
+
+  pct1 = constrain(pct1, 0.0, 100.0);
+  pct2 = constrain(pct2, 0.0, 100.0);
+
+  // Suavizado exponencial
+  humedadSuavizada1 = ALPHA * pct1 + (1.0 - ALPHA) * humedadSuavizada1;
+  humedadSuavizada2 = ALPHA * pct2 + (1.0 - ALPHA) * humedadSuavizada2;
+
+  // Publicar solo si hay cambio significativo
+  static float anterior1 = 0.0;
+  static float anterior2 = 0.0;
+
+  if (abs(humedadSuavizada1 - anterior1) >= CAMBIO_MINIMO) {
+    anterior1 = humedadSuavizada1;
+    mqtt.publish("invernadero/humedadSuelo1", String(humedadSuavizada1, 1).c_str());
+  }
+
+  if (abs(humedadSuavizada2 - anterior2) >= CAMBIO_MINIMO) {
+    anterior2 = humedadSuavizada2;
+    mqtt.publish("invernadero/humedadSuelo2", String(humedadSuavizada2, 1).c_str());
+  }
+
+  // Trazabilidad de humedad suavizada
+  mqtt.publish("invernadero/alertas", (String("HUMEDAD1 suavizada: ") + humedadSuavizada1).c_str());
+  mqtt.publish("invernadero/alertas", (String("HUMEDAD2 suavizada: ") + humedadSuavizada2).c_str());
+
+  return humedadSuavizada1; // Devuelve la del sensor principal
 }
+
 
 
 

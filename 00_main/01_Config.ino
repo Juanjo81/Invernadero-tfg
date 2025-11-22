@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.2.5"
+#define VERSION_FIRMWARE "2.2.6"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -17,8 +17,10 @@
 #define SERVO_PIN2      14
 
 // =================== CONSTANTES FÍSICAS ===================
-const float SUELO_SECO        = 2600.0;  // valor de suelo seco
+const float SUELO_SECO        = 4100.0;  // valor de suelo seco
 const float SUELO_MOJADO        = 500.0;  // valor de suelo mojado
+const float SUELO_SECO2        = 2500.0;  // valor de suelo seco
+const float SUELO_MOJADO2        = 800.0;  // valor de suelo mojado
 const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
 const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
 const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos
@@ -33,7 +35,7 @@ float nivelPct = 0.0;
 float sueloPct =0.0;
 float temperaturaActual = 0.0;
 float humedadActual = 0.0;
-float temperaturaObjetivo = 35.0;
+float temperaturaObjetivo = 50.0;
 float humedadObjetivo = 0.0;
 bool modoUsuarioLED = false;
 
