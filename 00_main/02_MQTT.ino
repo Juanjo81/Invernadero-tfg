@@ -46,7 +46,16 @@ void mantenerConexiones() {
   Serial.println(WiFi.localIP());
 
 }
+void inicializarTopics(){
+    //Publicar limpieza de tópicos al iniciar
+  mqtt.publish("invernadero/alertas", "", true);           // Limpia alerta anterior
+  mqtt.publish("invernadero/notificaciones", "", true);    // Limpia notificación anterior
+  mqtt.publish("invernadero/suelo/humedad", "", true);     // Limpia lectura antigua
+  mqtt.publish("invernadero/tanque/nivel", "", true);      // Limpia nivel anterior
+  mqtt.publish("invernadero/bomba/state", "", true);       // Limpia estado bomba
+  mqtt.publish("invernadero/led/power", "", true); 
 
+}
 // ====== MQTT CALLBACK ======
 void onMqtt(char* topic, byte* payload, unsigned int len){
   String msg; msg.reserve(len);
@@ -128,5 +137,7 @@ void connectMQTT(){
       delay(500);
     }
  }
+
+
 }
 

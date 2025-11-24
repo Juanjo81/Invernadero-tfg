@@ -6,12 +6,17 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import com.example.invernaderomqtt.data.eventos.EventoBD
+import com.example.invernaderomqtt.data.eventos.RepositorioEventos
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.hivemq.client.mqtt.MqttClient
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import mostrarNotificacion
 import java.nio.charset.StandardCharsets
 
@@ -107,10 +112,32 @@ class VistaModeloMQTT : ViewModel() {
                 "invernadero/tanque/nivel" -> _nivelTanque.value = payload
                 "invernadero/bomba/state" -> _riegoEncendido.value = payload == "ON"
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
-                "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
-                "invernadero/objetivos/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
-                "invernadero/alertas" -> mostrarNotificacion(context, "Alerta del invernadero", payload)
-                "invernadero/notificaciones" -> mostrarNotificacion(context, "Notificación", payload)
+                "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value =
+                    payload.toFloatOrNull() ?: _temperaturaObjetivo.value
+
+                "invernadero/objetivos/humedad" -> _humedadObjetivo.value =
+                    payload.toFloatOrNull() ?: _humedadObjetivo.value
+
+                "invernadero/alertas" -> {
+                    mostrarNotificacion(context, "Alerta del invernadero", payload)
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val dao = EventoBD.obtener(context).eventoDao()
+                        val repo = RepositorioEventos(dao)
+                        repo.registrarEvento("alerta", payload, "invernadero/alertas")
+                    }
+                }
+
+
+                "invernadero/notificaciones" -> {
+                    mostrarNotificacion(context, "Notificación", payload)
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val dao = EventoBD.obtener(context).eventoDao()
+                        val repo = RepositorioEventos(dao)
+                        repo.registrarEvento("info", payload, "invernadero/notificaciones")
+                    }
+                }
             }
         }
 

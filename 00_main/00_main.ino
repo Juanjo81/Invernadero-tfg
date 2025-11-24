@@ -4,6 +4,7 @@
 #include <DHT.h>
 #include "PIDControl.h"
 
+void inicializarTopics();
 void inicializarActuadores();
 void inicializarSensores();
 void inicializarPantalla();
@@ -44,11 +45,11 @@ extern bool bombaOn;
 
 void setup() {
   Serial.begin(115200);
-
   inicializarActuadores();       // Servos, bomba, ventilador, LED RGB
   inicializarSensores();         // Pines de suelo y ultrasonido
   inicializarPantalla();         // OLED
-  inicializarRed();              // WiFi + MQTT
+  inicializarRed();              // WiFi + MQTT  
+  inicializarTopics();
   inicializarPID(); 
   configurarOTA("InvernaderoESP32");
 
