@@ -159,12 +159,12 @@ class VistaModeloMQTT : ViewModel() {
     }
     fun setTemperaturaObjetivo(valor: Float) {
         _temperaturaObjetivo.value = valor
-        publicar("invernadero/objetivos/temperatura", valor.toString())
+        publicar("invernadero/optimo/temperatura", valor.toString())
     }
 
     fun setHumedadObjetivo(valor: Float) {
         _humedadObjetivo.value = valor
-        publicar("invernadero/objetivos/humedad", valor.toString())
+        publicar("invernadero/optimo/humedad", valor.toString())
     }
 
     fun alternarRiego() {
