@@ -1,7 +1,6 @@
 package com.example.invernaderomqtt.ui.historial
 
 import android.app.DatePickerDialog
-import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,16 +21,16 @@ fun PantallaHistorial() {
     val eventos = viewModel.eventos.collectAsState().value
     val context = LocalContext.current
 
-    // Estado para fecha seleccionada
-    var fechaSeleccionada by remember { mutableStateOf<Date?>(null) }
+    // Estado para rango de fechas
+    var fechaInicio by remember { mutableStateOf<Date?>(null) }
+    var fechaFin by remember { mutableStateOf<Date?>(null) }
 
-    // Filtrar eventos por fecha seleccionada o últimos 3 días
-    val eventosFiltrados = remember(eventos, fechaSeleccionada) {
-        if (fechaSeleccionada != null) {
+    // Filtrar eventos por rango o últimos 3 días
+    val eventosFiltrados = remember(eventos, fechaInicio, fechaFin) {
+        if (fechaInicio != null && fechaFin != null) {
             eventos.filter {
-                val fechaEvento = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(it.timestamp))
-                val fechaFiltro = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(fechaSeleccionada!!)
-                fechaEvento == fechaFiltro
+                val fechaEvento = Date(it.timestamp)
+                fechaEvento.after(fechaInicio) && fechaEvento.before(fechaFin)
             }
         } else {
             val hoy = Calendar.getInstance()
@@ -72,6 +71,7 @@ fun PantallaHistorial() {
                 }
             }
 
+            // Botón para seleccionar fecha de inicio
             Button(
                 onClick = {
                     val hoy = Calendar.getInstance()
@@ -80,7 +80,7 @@ fun PantallaHistorial() {
                         { _, year, month, day ->
                             val cal = Calendar.getInstance()
                             cal.set(year, month, day, 0, 0, 0)
-                            fechaSeleccionada = cal.time
+                            fechaInicio = cal.time
                         },
                         hoy.get(Calendar.YEAR),
                         hoy.get(Calendar.MONTH),
@@ -89,9 +89,32 @@ fun PantallaHistorial() {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                Text("Buscar por fecha específica")
+                Text("Seleccionar fecha inicio")
+            }
+
+            // Botón para seleccionar fecha de fin
+            Button(
+                onClick = {
+                    val hoy = Calendar.getInstance()
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, day ->
+                            val cal = Calendar.getInstance()
+                            cal.set(year, month, day, 23, 59, 59)
+                            fechaFin = cal.time
+                        },
+                        hoy.get(Calendar.YEAR),
+                        hoy.get(Calendar.MONTH),
+                        hoy.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text("Seleccionar fecha fin")
             }
         }
     }
@@ -106,9 +129,11 @@ fun EventoItemCompacto(evento: Evento) {
         else -> Color.Gray
     }
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
         Text(
             text = evento.mensaje,
             style = MaterialTheme.typography.bodySmall,

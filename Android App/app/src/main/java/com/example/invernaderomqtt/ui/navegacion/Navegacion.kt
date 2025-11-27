@@ -43,7 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.example.invernaderomqtt.ui.principal.VistaModeloMQTT
 import com.example.invernaderomqtt.ui.BotonControl
+import com.example.invernaderomqtt.ui.about.PantallaAbout
 import com.example.invernaderomqtt.ui.configuracion.ConfiguracionScreen
+import com.example.invernaderomqtt.ui.configuracion.ConfiguracionServidorScreen
 import com.example.invernaderomqtt.ui.historial.PantallaHistorial
 
 @Composable
@@ -92,11 +94,11 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
             }
 
             composable("configuracion_servidor") {
-                //ConfiguracionServidorScreen()
+                ConfiguracionServidorScreen()
             }
 
             composable("about") {
-                //PantallaAbout()
+                PantallaAbout()
             }
 
             composable("configuracion_pid") {

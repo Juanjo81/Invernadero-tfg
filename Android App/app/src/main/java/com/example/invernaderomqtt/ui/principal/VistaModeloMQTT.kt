@@ -196,6 +196,10 @@ class VistaModeloMQTT : ViewModel() {
         publicar("invernadero/led/cmd", color.aHex())
     }
 
+    fun setDireccionIP(nueva: String) {
+        _direccionIP.value = nueva
+    }
+
 }
 
 fun Color.aHex(): String {
@@ -204,3 +208,6 @@ fun Color.aHex(): String {
     val b = (blue * 255).toInt()
     return String.format("#%02X%02X%02X", r, g, b)
 }
+
+
+

@@ -94,11 +94,24 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
                     .background(Color.Black)
                     .padding(16.dp)
             ) {
-                IconButton(onClick = {
-                    scope.launch { drawerState.open() }
-                }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = Color.White)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    IconButton(onClick = {
+                        scope.launch { drawerState.open() }
+                    }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Abrir menú", tint = Color.White)
+                    }
+
+                    Text(
+                        text = "Menú:",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
                 }
+
 
 
                 Text(
