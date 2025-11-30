@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.3"
+#define VERSION_FIRMWARE "2.5"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -38,6 +38,14 @@ float humedadActual = 0.0;
 float temperaturaObjetivo = 50.0;
 float humedadObjetivo = 0.0;
 bool modoUsuarioLED = false;
+enum EstadoSistema {
+  ESTADO_OK,
+  ESTADO_RIEGO,
+  ESTADO_BLOQUEO
+};
+
+EstadoSistema estadoActual = ESTADO_OK; // valor inicial
+
 
 static unsigned long tInicioRiegoGlobal = 0;
 

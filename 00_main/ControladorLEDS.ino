@@ -10,15 +10,27 @@ void inicializarLEDs() {
   aplicarColor(0, 0, 0);
 }
 void mostrarEstadoRiego() {
-  aplicarColor(0, 0, 255); // Azul
+  if (estadoActual != ESTADO_RIEGO) {
+    aplicarColor(0, 0, 255); // Azul
+    mqtt.publish("invernadero/estado", "RIEGO");
+    estadoActual = ESTADO_RIEGO;
+  }
 }
 
 void mostrarEstadoBloqueo() {
-  aplicarColor(255, 0, 0); // Rojo
+  if (estadoActual != ESTADO_BLOQUEO) {
+    aplicarColor(255, 0, 0); // Rojo
+    mqtt.publish("invernadero/estado", "BLOQUEO");
+    estadoActual = ESTADO_BLOQUEO;
+  }
 }
 
 void mostrarEstadoNormal() {
-  aplicarColor(0, 255, 0); // Verde
+  if (estadoActual != ESTADO_OK) {
+    aplicarColor(0, 255, 0); // Verde
+    mqtt.publish("invernadero/estado", "OK");
+    estadoActual = ESTADO_OK;
+  }
 }
 
 void aplicarColor(int r, int g, int b) {

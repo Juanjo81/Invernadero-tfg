@@ -54,6 +54,7 @@ void inicializarTopics(){
   mqtt.publish("invernadero/tanque/nivel", "", true);      // Limpia nivel anterior
   mqtt.publish("invernadero/bomba/state", "", true);       // Limpia estado bomba
   mqtt.publish("invernadero/led/power", "", true); 
+  mqtt.publish("invernadero/debug/bloqueo", "", true); 
 
 }
 // ====== MQTT CALLBACK ======
