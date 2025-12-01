@@ -53,7 +53,7 @@ void bombaEncender() {
 
   digitalWrite(CH1_IN, HIGH);
   gestionarEvento("notificacion", "Riego Manual Iniciado");
-  mqtt.publish("invernadero/estado/bomba", "Activada en modo manual");
+  mqtt.publish("invernadero/bomba/estado", "ON");
 
   bombaOn = true;
   modoManual = true;
@@ -68,7 +68,7 @@ void bombaApagar() {
 
   digitalWrite(CH1_IN, LOW);
   gestionarEvento("notificacion", "Riego Manual Finalizado");
-  mqtt.publish("invernadero/estado/bomba", "Desactivada en modo manual");
+  mqtt.publish("invernadero/bomba/estado", "OFF");
 
   bombaOn = false;
   modoManual = false;

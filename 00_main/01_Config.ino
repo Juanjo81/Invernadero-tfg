@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.5"
+#define VERSION_FIRMWARE "2.6"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -53,6 +53,7 @@ static unsigned long tInicioRiegoGlobal = 0;
 // =================== TÓPICOS MQTT ===================
 // Comandos
 const char* T_BOMBA_CMD       = "invernadero/bomba/cmd";
+const char* T_BOMBA_ESTADO    = "invernadero/bomba/estado";
 const char* T_SUELO_HUM_CMD   = "invernadero/suelo/humedad/cmd";
 const char* T_LED_CMD         = "invernadero/led/cmd";
 const char* T_LED_POWER       = "invernadero/led/power";

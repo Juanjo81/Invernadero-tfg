@@ -9,7 +9,7 @@ extern PubSubClient mqtt;
 void gestionarEvento(String tipo, String mensaje) {
   mensajeEvento = mensaje;
 
-  if (tipo == "Alerta") {
+  if (tipo == "alerta") {
     alertaActiva = true;
     parpadeosRestantes = 10;
     t_alerta = millis();
@@ -24,7 +24,7 @@ void gestionarEvento(String tipo, String mensaje) {
     display.display();
   }
 
-  else if (tipo == "Notificacion") {
+  else if (tipo == "notificacion") {
     mqtt.publish(T_NOTIFICACIONES, mensaje.c_str(), true);
 
     display.clearDisplay();
