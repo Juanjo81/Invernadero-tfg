@@ -125,7 +125,8 @@ void activarVentiladorPorPID(float salidaPIDTemp) {
     return;
   }
 
-  static unsigned long instanteAnterior = 0;
+  static unsigned long instanteCalculo = 0;
+  static unsigned long instanteEncendido = 0;
   static unsigned long tiempoVentilacion = 0;
   unsigned long ahora = millis();
 
@@ -134,8 +135,9 @@ void activarVentiladorPorPID(float salidaPIDTemp) {
     return;
   }
 
-  if (ahora - instanteAnterior >= 5000) {
-    instanteAnterior = ahora;
+  // Cada 5 segundos recalculamos
+  if (ahora - instanteCalculo >= 5000) {
+    instanteCalculo = ahora;
 
     if (salidaPIDTemp >= 0) {
       tiempoVentilacion = 0;
@@ -151,6 +153,8 @@ void activarVentiladorPorPID(float salidaPIDTemp) {
       servoMotor.write(150);
       servoMotor2.write(150);
       tapaAbierta = true;
+
+      instanteEncendido = ahora; // guardamos cuándo se encendió
     } else {
       digitalWrite(FAN_CTRL_PIN, LOW);
       gestionarEvento("notificacion", "Ventilador apagado por PID inverso");
@@ -160,16 +164,17 @@ void activarVentiladorPorPID(float salidaPIDTemp) {
     }
   }
 
-  if (ahora - instanteAnterior >= tiempoVentilacion) {
+  // Apagar tras el tiempo de ventilación
+  if (tiempoVentilacion > 0 && (ahora - instanteEncendido >= tiempoVentilacion)) {
     digitalWrite(FAN_CTRL_PIN, LOW);
     if (tapaAbierta) {
       servoMotor.write(0);
       servoMotor2.write(0);
       tapaAbierta = false;
     }
+    tiempoVentilacion = 0; // reseteamos
   }
 }
-
 // --- Cálculo de tiempo proporcional de riego ---
 unsigned long calcularTiempoPID(float salidaPID, unsigned long periodoMaximo) {
   if (salidaPID <= 0) return 0;

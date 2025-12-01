@@ -373,6 +373,7 @@ fun BotonControl(
     icono: ImageVector,
     etiqueta: String,
     activo: Boolean,
+    enabled: Boolean = true,
     alPulsar: () -> Unit
 ) {
     val fondoAnimado by animateColorAsState(

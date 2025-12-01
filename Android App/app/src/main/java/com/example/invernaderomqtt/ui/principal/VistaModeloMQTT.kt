@@ -1,9 +1,7 @@
 package com.example.invernaderomqtt.ui.principal
 
-import android.Manifest
 import android.content.Context
 import android.util.Log
-import androidx.annotation.RequiresPermission
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import com.example.invernaderomqtt.data.eventos.EventoBD
@@ -14,11 +12,13 @@ import com.hivemq.client.mqtt.MqttClient
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mostrarNotificacion
 import java.nio.charset.StandardCharsets
+
 
 class VistaModeloMQTT : ViewModel() {
 
@@ -38,10 +38,11 @@ class VistaModeloMQTT : ViewModel() {
 
     private val _humedadSuelo = MutableStateFlow("0.0")
     val humedadSuelo: StateFlow<String> = _humedadSuelo
-    private val _temperaturaObjetivo = MutableStateFlow(25f)
+
+    private val _temperaturaObjetivo = MutableStateFlow(60f)
     val temperaturaObjetivo: StateFlow<Float> = _temperaturaObjetivo
 
-    private val _humedadObjetivo = MutableStateFlow(60f)
+    private val _humedadObjetivo = MutableStateFlow(0f)
     val humedadObjetivo: StateFlow<Float> = _humedadObjetivo
 
     private val _nivelTanque = MutableStateFlow("0.0")
@@ -61,6 +62,10 @@ class VistaModeloMQTT : ViewModel() {
 
     private val _colorBombilla = MutableStateFlow(Color.White)
     val colorBombilla: StateFlow<Color> = _colorBombilla
+
+    private val _estado = MutableStateFlow("OK")
+    val estadoVisual: StateFlow<String> = _estado
+
 
     fun inicializarMQTT(context: Context) {
         clienteMQTT = MqttClient.builder()
@@ -86,60 +91,76 @@ class VistaModeloMQTT : ViewModel() {
             "invernadero/aire/temperatura",
             "invernadero/aire/humedad",
             "invernadero/suelo/humedad",
-            "invernadero/bomba/state",
+            "invernadero/bomba/estado",
             "invernadero/tanque/nivel",
             "invernadero/led/power",
             "invernadero/alertas",
             "invernadero/notificaciones",
             "invernadero/objetivos/temperatura",
-            "invernadero/objetivos/humedad"
+            "invernadero/objetivos/humedad",
+            "invernadero/estado"
         )
 
         clienteMQTT.publishes(MqttGlobalPublishFilter.ALL) { mensaje ->
             val topic = mensaje.topic.toString()
+            val mensajeV3 = mensaje as? com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish
+            val retained = mensajeV3?.isRetain ?: false
+
             val payload = mensaje.payload.map { buffer ->
                 val bytes = ByteArray(buffer.remaining())
                 buffer.get(bytes)
                 String(bytes, StandardCharsets.UTF_8)
             }.orElse(null) ?: return@publishes
 
-            Log.d("MQTT", "Mensaje recibido en $topic: $payload")
+            Log.d("MQTT", "Mensaje recibido en $topic: $payload (retained=$retained)")
+
+            // Ignorar mensajes retained en eventos
+            if ((topic == "invernadero/notificaciones" || topic == "invernadero/alertas") && retained) {
+                Log.d("MQTT", "Ignorado mensaje retained en $topic: $payload")
+                return@publishes
+            }
 
             when (topic) {
-                "invernadero/aire/temperatura" -> _temperaturaAire.value = payload
-                "invernadero/aire/humedad" -> _humedadAire.value = payload
-                "invernadero/suelo/humedad" -> _humedadSuelo.value = payload
-                "invernadero/tanque/nivel" -> _nivelTanque.value = payload
-                "invernadero/bomba/state" -> _riegoEncendido.value = payload == "ON"
+                "invernadero/aire/temperatura" -> {
+                    _temperaturaAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                }
+                "invernadero/aire/humedad" -> {
+                    _humedadAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                }
+                "invernadero/suelo/humedad" -> {
+                    _humedadSuelo.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                }
+                "invernadero/tanque/nivel" -> {
+                    _nivelTanque.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                }
+                "invernadero/estado" -> _estado.value = payload
+                "invernadero/bomba/estado" -> _riegoEncendido.value = payload == "ON"
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
                 "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value =
                     payload.toFloatOrNull() ?: _temperaturaObjetivo.value
-
                 "invernadero/objetivos/humedad" -> _humedadObjetivo.value =
                     payload.toFloatOrNull() ?: _humedadObjetivo.value
 
                 "invernadero/alertas" -> {
                     mostrarNotificacion(context, "Alerta del invernadero", payload)
-
                     CoroutineScope(Dispatchers.IO).launch {
                         val dao = EventoBD.obtener(context).eventoDao()
                         val repo = RepositorioEventos(dao)
-                        repo.registrarEvento("alerta", payload, "invernadero/alertas")
+                        repo.registrarEvento("alerta", payload, topic)
                     }
                 }
 
-
                 "invernadero/notificaciones" -> {
                     mostrarNotificacion(context, "Notificación", payload)
-
                     CoroutineScope(Dispatchers.IO).launch {
                         val dao = EventoBD.obtener(context).eventoDao()
                         val repo = RepositorioEventos(dao)
-                        repo.registrarEvento("info", payload, "invernadero/notificaciones")
+                        repo.registrarEvento("info", payload, topic)
                     }
                 }
             }
         }
+
 
         topics.forEach { topic ->
             clienteMQTT.subscribeWith()
@@ -149,7 +170,6 @@ class VistaModeloMQTT : ViewModel() {
         }
     }
 
-
     private fun publicar(topic: String, mensaje: String) {
         clienteMQTT.publishWith()
             .topic(topic)
@@ -157,6 +177,7 @@ class VistaModeloMQTT : ViewModel() {
             .send()
         Log.d("MQTT", "Publicado en $topic: $mensaje")
     }
+
     fun setTemperaturaObjetivo(valor: Float) {
         _temperaturaObjetivo.value = valor
         publicar("invernadero/optimo/temperatura", valor.toString())
@@ -198,6 +219,17 @@ class VistaModeloMQTT : ViewModel() {
 
     fun setDireccionIP(nueva: String) {
         _direccionIP.value = nueva
+    }
+    fun iniciarReconexionesPeriodicas(context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                kotlinx.coroutines.delay(10000) // cada 10 segundos
+                if (!_conectadoMQTT.value) {
+                    Log.d("MQTT", "Reconectando MQTT automáticamente...")
+                    inicializarMQTT(context)
+                }
+            }
+        }
     }
 
 }

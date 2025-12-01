@@ -58,6 +58,8 @@ class ActividadPrincipal : ComponentActivity() {
 
             LaunchedEffect(Unit) {
                 vistaModeloMQTT.inicializarMQTT(applicationContext)
+                vistaModeloMQTT.iniciarReconexionesPeriodicas(applicationContext)
+
             }
 
             // Oscurecer barras del sistema
