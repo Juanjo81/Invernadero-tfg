@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.MeetingRoom
@@ -124,15 +125,23 @@ fun MenuActuadores(
     estado: String
 ) {
     val colorBorde = when (estado) {
-        "BLOQUEADO" -> Color.Red
+        "BLOQUEO_RIEGO" -> Color.Red
+        "BLOQUEO_VENTILACION" -> Color(0xFFFF9800) // naranja
+        "BLOQUEO_TOTAL" -> Color.Magenta
         "RIEGO" -> Color.Blue
+        "VENTILANDO" -> Color.Yellow
+        "RIEGO+VENTILANDO" -> Color.Cyan
         "OK", "NORMAL" -> Color(0xFF81C784) // verde
         else -> Color.White
     }
 
     val textoEstado = when (estado) {
-        "BLOQUEADO" -> "⚠️ Sistema Bloqueado"
+        "BLOQUEO_RIEGO" -> "⚠️ Bloqueo en Riego"
+        "BLOQUEO_VENTILACION" -> "⚠️ Bloqueo en Ventilación"
+        "BLOQUEO_TOTAL" -> "⛔ Sistema Bloqueado"
         "RIEGO" -> "💧 Regando"
+        "VENTILANDO" -> "🌬️ Ventilando"
+        "RIEGO+VENTILANDO" -> "💧🌬️ Regando y Ventilando"
         "OK", "NORMAL" -> "✅ OK"
         else -> estado
     }
@@ -170,20 +179,22 @@ fun MenuActuadores(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // 🔧 Botón de bomba: deshabilitado si bloqueado
+                // Botón de bomba: deshabilitado si bloqueo de riego o total
                 BotonControl(
                     icono = Icons.Default.Opacity,
                     etiqueta = "Bomba",
                     activo = riegoActivo,
-                    enabled = estado != "BLOQUEADO"
+                    enabled = estado != "BLOQUEO_RIEGO" && estado != "BLOQUEO_TOTAL"
                 ) {
                     vistaModelo.alternarRiego()
                 }
 
+                // Botón de ventilador: deshabilitado si bloqueo de ventilación o total
                 BotonControl(
-                    icono = Icons.Default.Cloud,
+                    icono = Icons.Default.AcUnit,
                     etiqueta = "Ventilador",
-                    activo = ventilacionActiva
+                    activo = ventilacionActiva,
+                    enabled = estado != "BLOQUEO_VENTILACION" && estado != "BLOQUEO_TOTAL"
                 ) {
                     vistaModelo.alternarVentilacion()
                 }
@@ -207,4 +218,3 @@ fun MenuActuadores(
         }
     }
 }
-
