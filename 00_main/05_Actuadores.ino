@@ -2,10 +2,11 @@
 #include <PubSubClient.h>     
 // ====== VARIABLES ======
 
-bool ventiladorOn = false;
+
 bool tapaAbierta = false;
 extern PubSubClient mqtt;
 extern bool bombaOn;
+extern bool ventiladorOn;
 
 bool modoManual = false;
 bool modoManualVentilador = false;
@@ -41,7 +42,7 @@ void inicializarActuadores() {
   aplicarColor(0, 0, 0);
 }
 
-void bombaEncender() {
+/*void bombaEncender() {
   unsigned long ahora = millis();
 
   if (!verificarSensoresDuranteRiego()) {
@@ -60,7 +61,34 @@ void bombaEncender() {
   tInicioRiegoGlobal = ahora;
 
   //mostrarEstadoRiego();
+}*/
+
+void bombaEncender() {
+  unsigned long ahora = millis();
+
+  // Comprobamos solo los sensores críticos para el riego
+  bool nivelOK = verificarSensorNivelDuranteRiego();
+  bool sueloOK = verificarSensorSueloDuranteRiego();
+
+  if (!nivelOK || !sueloOK) {
+    gestionarEvento("alerta", "Intento de riego manual bloqueado por fallo en sensores críticos");
+    mqtt.publish("invernadero/debug/bloqueo", "Riego manual bloqueado: fallo en nivel o humedad del suelo");
+    // mostrarEstadoBloqueo();
+    return;
+  }
+
+  // Si los sensores críticos están correctos, se permite el riego manual
+  digitalWrite(CH1_IN, HIGH);
+  gestionarEvento("notificacion", "Riego Manual Iniciado");
+  mqtt.publish("invernadero/bomba/estado", "ON");
+
+  bombaOn = true;
+  modoManual = true;
+  tInicioRiegoGlobal = ahora;
+
+  // mostrarEstadoRiego();
 }
+
 
 
 
@@ -73,14 +101,26 @@ void bombaApagar() {
   bombaOn = false;
   modoManual = false;
 
-  /*if (!verificarSensoresDuranteRiego()) {
-    mostrarEstadoBloqueo();
-  } else {
-    mostrarEstadoNormal();
-  }*/
 }
 
-void ventiladorEncender() { digitalWrite(FAN_CTRL_PIN, HIGH); gestionarEvento("Notificacion", "Ventilacion Manual Iniciada");  ventiladorOn = true;modoManualVentilador=true;}
+void ventiladorEncender() {
+  // Comprobamos que el sensor DHT esté operativo antes de encender
+  bool dhtOK = verificarSensorDHTDuranteRiego();
+
+  if (!dhtOK) {
+    gestionarEvento("alerta", "Intento de ventilación manual bloqueado por fallo en sensor DHT");
+    mqtt.publish("invernadero/debug/bloqueo", "Ventilador manual bloqueado: fallo en sensor de temperatura/humedad");
+    return;
+  }
+
+  digitalWrite(FAN_CTRL_PIN, HIGH);
+  gestionarEvento("notificacion", "Ventilación Manual Iniciada");
+  mqtt.publish("invernadero/ventilador/estado", "ON");
+
+  ventiladorOn = true;
+  modoManualVentilador = true;
+}
+
 void ventiladorApagar()   { digitalWrite(FAN_CTRL_PIN, LOW); gestionarEvento("Notificacion", "Ventilacion Manual Detenida");  ventiladorOn = false;modoManualVentilador=false; }
 
 

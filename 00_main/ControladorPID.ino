@@ -32,35 +32,25 @@ void activarBombaPorPID(float salidaPID) {
 
   unsigned long ahora = millis();
 
-  // Ignorar si modo manual activo
+  // 1. Ignorar si modo manual activo
   if (modoManual) {
     digitalWrite(CH1_IN, bombaOn ? HIGH : LOW);
-    if (bombaOn && !bombaActiva) {
-      bombaActiva = true;
-    } else if (!bombaOn && bombaActiva) {
-      bombaActiva = false;
-    }
+    bombaActiva = bombaOn;
     mqtt.publish("invernadero/debug/bloqueo", "Modo manual activo, PID ignorado");
     return;
   }
 
-  // Verificaciones de seguridad
-  if (!verificarSensoresDuranteRiego()) {
-    mostrarEstadoBloqueo();
+  // 2. Verificaciones de seguridad: solo sensores críticos
+  bool nivelOK = verificarSensorNivelDuranteRiego();
+  bool sueloOK = verificarSensorSueloDuranteRiego();
+
+  if (!nivelOK || !sueloOK) {
+    mostrarEstadoBloqueoRiego(); // rojo
     return;
   }
 
-  float nivel = leerNivel();
-  if (nivel < 1.0 || nivel == -1.0) {
-    mqtt.publish("invernadero/debug/bloqueo", "Nivel demasiado bajo para regar");
-    gestionarEvento("alerta", "No se puede regar, nivel demasiado bajo");
-    mostrarEstadoBloqueo();
-    return;
-  }
-
-  //  Evitar recalcular si ya está regando
+  // 3. Supervisión de apagado si ya está regando
   if (regandoPID) {
-    // Supervisión de apagado
     if (ahora - tInicioRiego >= duracionRiego) {
       digitalWrite(CH1_IN, LOW);
       mostrarEstadoNormal();
@@ -74,17 +64,14 @@ void activarBombaPorPID(float salidaPID) {
     return;
   }
 
-
-  // Evaluación PID cada 5 segundos
+  // 4. Evaluación PID cada 5 segundos
   if (ahora - tEvaluacion >= 5000) {
     tEvaluacion = ahora;
     duracionRiego = calcularTiempoPID(salidaPID, 5000);
 
-    //mqtt.publish("invernadero/debug/activacion_pid", ("Condiciones OK, tiempo calculado: " + String(duracionRiego)).c_str());
-
     if (duracionRiego > 0) {
       digitalWrite(CH1_IN, HIGH);
-      delay(50); // estabilización sensor
+      delay(50); // estabilización
       mostrarEstadoRiego();
       gestionarEvento("notificacion", "Bomba activada por PID");
       mqtt.publish("invernadero/estado/bomba", "Activada por PID");
@@ -100,81 +87,94 @@ void activarBombaPorPID(float salidaPID) {
     } else {
       digitalWrite(CH1_IN, LOW);
       mostrarEstadoNormal();
-      //mqtt.publish("invernadero/estado/bomba", "No activada, tiempo de riego = 0");
-      //gestionarEvento("notificacion", "Bomba no activada por PID");
+      // mqtt.publish("invernadero/estado/bomba", "No activada, tiempo de riego = 0");
     }
   }
-
-  /*/ Supervisión de apagado por duración cumplida
-  if (regandoPID && ahora - tInicioRiego >= duracionRiego) {
-    digitalWrite(CH1_IN, LOW);
-    mostrarEstadoNormal();
-    regandoPID = false;
-    bombaActiva = false;
-    bombaOn = false;
-    tCooldown = ahora;
-    gestionarEvento("notificacion", "Bomba desactivada tras ciclo PID");
-    mqtt.publish("invernadero/estado/bomba", "Desactivada tras ciclo PID");
-  }*/
 }
+
 
 // --- Activación ventilador por PID temperatura ---
 void activarVentiladorPorPID(float salidaPIDTemp) {
-  if (modoManualVentilador) {
-    digitalWrite(FAN_CTRL_PIN, ventiladorOn ? HIGH : LOW);
-    return;
-  }
-
   static unsigned long instanteCalculo = 0;
   static unsigned long instanteEncendido = 0;
   static unsigned long tiempoVentilacion = 0;
+  static bool ventiladorPIDActivo = false;
+
   unsigned long ahora = millis();
 
-  if (!sensorTempOK) {
-    gestionarEvento("alerta", "Fallo en sensor de temperatura");
+  // 1. Ignorar si modo manual activo
+  if (modoManualVentilador) {
+    digitalWrite(FAN_CTRL_PIN, ventiladorOn ? HIGH : LOW);
+    ventiladorPIDActivo = ventiladorOn;
+    mqtt.publish("invernadero/debug/bloqueo", "Modo manual ventilador activo, PID ignorado");
     return;
   }
 
-  // Cada 5 segundos recalculamos
+  // 2. Verificación de seguridad: sensor DHT
+  bool dhtOK = verificarSensorDHTDuranteRiego();
+  if (!dhtOK) {
+    mostrarEstadoBloqueoVentilacion(); // naranja
+    return;
+  }
+
+  // 3. Evaluación PID cada 5 segundos
   if (ahora - instanteCalculo >= 5000) {
     instanteCalculo = ahora;
 
-    if (salidaPIDTemp >= 0) {
-      tiempoVentilacion = 0;
-    } else if (salidaPIDTemp > -5.0) {
-      tiempoVentilacion = abs(salidaPIDTemp) * 1000;
-    } else {
-      tiempoVentilacion = 5000;
-    }
+    if (salidaPIDTemp < 0) {
+      if (salidaPIDTemp > -5.0) {
+        tiempoVentilacion = abs(salidaPIDTemp) * 1000;
+      } else {
+        tiempoVentilacion = 5000;
+      }
 
-    if (tiempoVentilacion > 0) {
       digitalWrite(FAN_CTRL_PIN, HIGH);
-      gestionarEvento("notificacion", "Ventilador activado por PID inverso");
+      if (!ventiladorPIDActivo) {
+        gestionarEvento("notificacion", "Ventilador activado por PID inverso");
+        mqtt.publish("invernadero/estado/ventilador", "Activado por PID");
+        ventiladorPIDActivo = true;
+      }
+
       servoMotor.write(150);
       servoMotor2.write(150);
       tapaAbierta = true;
+      mostrarEstadoVentilando(); // amarillo
 
-      instanteEncendido = ahora; // guardamos cuándo se encendió
+      instanteEncendido = ahora;
+
     } else {
+      tiempoVentilacion = 0;
       digitalWrite(FAN_CTRL_PIN, LOW);
-      gestionarEvento("notificacion", "Ventilador apagado por PID inverso");
+
+      if (ventiladorPIDActivo) {
+        gestionarEvento("notificacion", "Ventilador apagado por PID inverso");
+        mqtt.publish("invernadero/estado/ventilador", "Apagado por PID");
+        ventiladorPIDActivo = false;
+      }
+
       servoMotor.write(0);
       servoMotor2.write(0);
       tapaAbierta = false;
+      mostrarEstadoNormal(); // verde
     }
   }
 
-  // Apagar tras el tiempo de ventilación
+  // 4. Apagado tras el tiempo de ventilación
   if (tiempoVentilacion > 0 && (ahora - instanteEncendido >= tiempoVentilacion)) {
     digitalWrite(FAN_CTRL_PIN, LOW);
-    if (tapaAbierta) {
-      servoMotor.write(0);
-      servoMotor2.write(0);
-      tapaAbierta = false;
-    }
-    tiempoVentilacion = 0; // reseteamos
+    gestionarEvento("notificacion", "Ventilador apagado tras ciclo PID");
+    mqtt.publish("invernadero/estado/ventilador", "Apagado tras ciclo PID");
+    servoMotor.write(0);
+    servoMotor2.write(0);
+    tapaAbierta = false;
+    tiempoVentilacion = 0;
+    ventiladorPIDActivo = false;
+    mostrarEstadoNormal();
   }
 }
+
+
+
 // --- Cálculo de tiempo proporcional de riego ---
 unsigned long calcularTiempoPID(float salidaPID, unsigned long periodoMaximo) {
   if (salidaPID <= 0) return 0;

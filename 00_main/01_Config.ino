@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.6"
+#define VERSION_FIRMWARE "2.7"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -31,6 +31,7 @@ const unsigned long INTERVALO_SENSORES = 5000;
 
 // =================== VARIABLES DE ESTADO ===================
 bool bombaOn = false;
+bool ventiladorOn = false;
 float nivelPct = 0.0;
 float sueloPct =0.0;
 float temperaturaActual = 0.0;
@@ -41,7 +42,11 @@ bool modoUsuarioLED = false;
 enum EstadoSistema {
   ESTADO_OK,
   ESTADO_RIEGO,
-  ESTADO_BLOQUEO
+  ESTADO_VENTILANDO,
+  ESTADO_RIEGO_VENTILANDO,
+  ESTADO_BLOQUEO_VENTILACION,
+  ESTADO_BLOQUEO_RIEGO,
+  ESTADO_BLOQUEO_TOTAL
 };
 
 EstadoSistema estadoActual = ESTADO_OK; // valor inicial

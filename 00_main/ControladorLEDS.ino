@@ -9,27 +9,60 @@ void inicializarLEDs() {
   ledcAttach(LED_B_PIN, 5000, 8);
   aplicarColor(0, 0, 0);
 }
+
 void mostrarEstadoRiego() {
   if (estadoActual != ESTADO_RIEGO) {
     aplicarColor(0, 0, 255); // Azul
-    mqtt.publish("invernadero/estado", "RIEGO");
+    mqtt.publish("invernadero/estado", "RIEGO",true);
     estadoActual = ESTADO_RIEGO;
-  }
-}
-
-void mostrarEstadoBloqueo() {
-  if (estadoActual != ESTADO_BLOQUEO) {
-    aplicarColor(255, 0, 0); // Rojo
-    mqtt.publish("invernadero/estado", "BLOQUEO");
-    estadoActual = ESTADO_BLOQUEO;
   }
 }
 
 void mostrarEstadoNormal() {
   if (estadoActual != ESTADO_OK) {
     aplicarColor(0, 255, 0); // Verde
-    mqtt.publish("invernadero/estado", "OK");
+    mqtt.publish("invernadero/estado", "OK",true);
     estadoActual = ESTADO_OK;
+  }
+}
+
+void mostrarEstadoVentilando() {
+  if (estadoActual != ESTADO_VENTILANDO) {
+    aplicarColor(255, 255, 0); // Amarillo
+    mqtt.publish("invernadero/estado", "VENTILANDO", true);
+    estadoActual = ESTADO_VENTILANDO;
+  }
+}
+
+void mostrarEstadoRiegoYVentilando() {
+  if (estadoActual != ESTADO_RIEGO_VENTILANDO) {
+    aplicarColor(0, 255, 255); // Cian
+    mqtt.publish("invernadero/estado", "RIEGO+VENTILANDO", true);
+    estadoActual = ESTADO_RIEGO_VENTILANDO;
+  }
+}
+
+void mostrarEstadoBloqueoRiego() {
+  if (estadoActual != ESTADO_BLOQUEO_RIEGO) {
+    aplicarColor(255, 0, 0); // Rojo
+    mqtt.publish("invernadero/estado", "BLOQUEO_RIEGO", true);
+    estadoActual = ESTADO_BLOQUEO_RIEGO;
+  }
+}
+
+void mostrarEstadoBloqueoVentilacion() {
+  if (estadoActual != ESTADO_BLOQUEO_VENTILACION) {
+    aplicarColor(255, 128, 0); // Naranja
+    mqtt.publish("invernadero/estado", "BLOQUEO_VENTILACION", true);
+    estadoActual = ESTADO_BLOQUEO_VENTILACION;
+  }
+}
+
+void mostrarEstadoBloqueoTotal() {
+  if (estadoActual != ESTADO_BLOQUEO_TOTAL) {
+    aplicarColor(255, 0, 255); // Magenta
+    mqtt.publish("invernadero/estado", "BLOQUEO_TOTAL", true);
+    estadoActual = ESTADO_BLOQUEO_TOTAL;
   }
 }
 
