@@ -38,6 +38,79 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.unit.sp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MenuGlobalTopBar(
+    navController: NavHostController,
+    titulo: String = "MENÚ"
+) {
+    val currentRoute = navController.currentBackStackEntryFlow
+        .collectAsState(initial = navController.currentBackStackEntry)
+        .value?.destination?.route
+    var expanded by remember { mutableStateOf(false) }
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
+    val opciones = listOf(
+        "principal" to "Página principal",
+        "configuracion_pid" to "Configuración PID",
+        "historial_eventos" to "Historial eventos",
+        "configuracion_servidor" to "Configuración servidor",
+        "about" to "About"
+    )
+
+    TopAppBar(
+        title = { Text(titulo, fontSize = 18.sp, color = Color.White) },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A)),
+        actions = {
+            IconButton(onClick = { expanded = true }) {
+                Icon(imageVector = Icons.Default.Menu, contentDescription = "Abrir menú", tint = Color.White)
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .background(Color(0xFF2C2C2C), RoundedCornerShape(12.dp))
+                    .padding(4.dp)
+            ) {
+                opciones.filter { it.first != currentRoute }.forEach { (ruta, etiqueta) ->
+                    DropdownMenuItem(
+                        text = { Text(etiqueta, color = Color.White) },
+                        onClick = {
+                            expanded = false
+                            navController.navigate(ruta) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Cloud, contentDescription = null, tint = Color(0xFF81C784))
+                        }
+                    )
+                }
+                Divider(color = Color.Gray)
+                DropdownMenuItem(
+                    text = { Text("Salir", color = Color.Red) },
+                    onClick = {
+                        expanded = false
+                        backDispatcher?.onBackPressed()
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.MeetingRoom, contentDescription = null, tint = Color.Red)
+                    }
+                )
+            }
+        }
+    )
+}
 
 @Composable
 fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModeloMQTT) {
@@ -47,10 +120,15 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
     val bombillaEncendida = vistaModelo.bombillaEncendida.collectAsState().value
     val colorTarjeta = Color(0xFF1A1A1A)
 
-    // Nuevo: recogemos el estado visual del ViewModel
     val estadoVisual = vistaModelo.estadoVisual.collectAsState().value
 
     Scaffold(
+        topBar = {
+            MenuGlobalTopBar(
+                navController = controlNavegacion,
+                titulo = "MENÚ"
+            )
+        },
         bottomBar = {
             MenuActuadores(
                 vistaModelo = vistaModelo,
@@ -59,7 +137,7 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
                 puertaAbierta = puertaAbierta,
                 bombillaEncendida = bombillaEncendida,
                 colorTarjeta = colorTarjeta,
-                estado = estadoVisual // ← aquí pasamos el estado
+                estado = estadoVisual
             )
         },
         containerColor = Color.Black
@@ -69,18 +147,15 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
             startDestination = "principal",
             modifier = Modifier.padding(padding)
         ) {
-            composable("principal") {
-                PantallaPrincipal(navController = controlNavegacion, vistaModelo = vistaModelo)
-            }
+            composable("principal") { PantallaPrincipal(navController = controlNavegacion, vistaModelo = vistaModelo) }
             composable("configuracion_pid") { ConfiguracionScreen() }
             composable("camara") { CamaraStreamScreen(vistaModelo = vistaModelo) }
             composable("historial_eventos") { PantallaHistorial() }
             composable("configuracion_servidor") { ConfiguracionServidorScreen() }
             composable("about") { PantallaAbout() }
         }
-    }
-}
-
+    } // ← cierre del Scaffold
+}   // ← cierre de NavegacionApp
 @Composable
 fun CamaraStreamScreen(vistaModelo: VistaModeloMQTT? = null) {
     val context = LocalContext.current
@@ -131,6 +206,7 @@ fun MenuActuadores(
         "RIEGO" -> Color.Blue
         "VENTILANDO" -> Color.Yellow
         "RIEGO+VENTILANDO" -> Color.Cyan
+        "RIEGO+BLOQUEO_VENTILACION" -> Color.Blue // azul, pero indicando fallo
         "OK", "NORMAL" -> Color(0xFF81C784) // verde
         else -> Color.White
     }
@@ -142,6 +218,7 @@ fun MenuActuadores(
         "RIEGO" -> "💧 Regando"
         "VENTILANDO" -> "🌬️ Ventilando"
         "RIEGO+VENTILANDO" -> "💧🌬️ Regando y Ventilando"
+        "RIEGO+BLOQUEO_VENTILACION" -> "💧 Regando (ventilación bloqueada)"
         "OK", "NORMAL" -> "✅ OK"
         else -> estado
     }
@@ -179,7 +256,7 @@ fun MenuActuadores(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Botón de bomba: deshabilitado si bloqueo de riego o total
+                // 🔧 Botón de bomba: deshabilitado si bloqueo de riego o total
                 BotonControl(
                     icono = Icons.Default.Opacity,
                     etiqueta = "Bomba",
@@ -189,7 +266,7 @@ fun MenuActuadores(
                     vistaModelo.alternarRiego()
                 }
 
-                // Botón de ventilador: deshabilitado si bloqueo de ventilación o total
+                // 🔧 Botón de ventilador: deshabilitado si bloqueo de ventilación o total
                 BotonControl(
                     icono = Icons.Default.AcUnit,
                     etiqueta = "Ventilador",
@@ -218,3 +295,7 @@ fun MenuActuadores(
         }
     }
 }
+
+
+
+

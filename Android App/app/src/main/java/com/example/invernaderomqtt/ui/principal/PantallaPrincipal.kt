@@ -105,7 +105,7 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
                     }
 
                     Text(
-                        text = "Menú:",
+                        text = "Menú",
                         color = Color.White,
                         fontSize = 16.sp,
                         modifier = Modifier.padding(start = 4.dp)

@@ -16,17 +16,22 @@ import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import mostrarNotificacion
 import java.nio.charset.StandardCharsets
-
 
 class VistaModeloMQTT : ViewModel() {
 
     private lateinit var clienteMQTT: Mqtt3AsyncClient
 
+    // Estado de conexión
     private val _conectadoMQTT = MutableStateFlow(false)
     val conectadoMQTT: StateFlow<Boolean> = _conectadoMQTT
 
+    // Último mensaje recibido (para watchdog)
+    private var ultimoMensajeRecibido = System.currentTimeMillis()
+
+    // Variables de estado
     private val _direccionIP = MutableStateFlow("invernaderotfg2.duckdns.org")
     val direccionIP: StateFlow<String> = _direccionIP
 
@@ -66,7 +71,7 @@ class VistaModeloMQTT : ViewModel() {
     private val _estado = MutableStateFlow("OK")
     val estadoVisual: StateFlow<String> = _estado
 
-
+    // --- Inicialización del cliente MQTT ---
     fun inicializarMQTT(context: Context) {
         clienteMQTT = MqttClient.builder()
             .useMqttVersion3()
@@ -75,17 +80,24 @@ class VistaModeloMQTT : ViewModel() {
             .identifier("invernaderoApp")
             .buildAsync()
 
-        clienteMQTT.connect().whenComplete { _, error ->
-            if (error == null) {
-                _conectadoMQTT.value = true
-                suscribirseATopics(context)
-            } else {
-                Log.e("MQTT", "Error al conectar", error)
-                _conectadoMQTT.value = false
-            }
+        // Opciones de conexión con keepAlive
+        clienteMQTT.connectWith()
+            .keepAlive(30)
+            .cleanSession(false)
+            .send()
+            .whenComplete { _, error ->
+                if (error == null) {
+                    _conectadoMQTT.value = true
+                    suscribirseATopics(context)
+                    Log.d("MQTT", "Conectado correctamente")
+                } else {
+                    Log.e("MQTT", "Error al conectar", error)
+                    _conectadoMQTT.value = false
+                }
         }
     }
 
+    // --- Suscripción a topics ---
     private fun suscribirseATopics(context: Context) {
         val topics = listOf(
             "invernadero/aire/temperatura",
@@ -102,8 +114,10 @@ class VistaModeloMQTT : ViewModel() {
         )
 
         clienteMQTT.publishes(MqttGlobalPublishFilter.ALL) { mensaje ->
+            ultimoMensajeRecibido = System.currentTimeMillis() // watchdog actualizado
+
             val topic = mensaje.topic.toString()
-            val mensajeV3 = mensaje as? com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish
+            val mensajeV3 = mensaje as? Mqtt3Publish
             val retained = mensajeV3?.isRetain ?: false
 
             val payload = mensaje.payload.map { buffer ->
@@ -121,25 +135,15 @@ class VistaModeloMQTT : ViewModel() {
             }
 
             when (topic) {
-                "invernadero/aire/temperatura" -> {
-                    _temperaturaAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
-                }
-                "invernadero/aire/humedad" -> {
-                    _humedadAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
-                }
-                "invernadero/suelo/humedad" -> {
-                    _humedadSuelo.value = payload.toFloatOrNull()?.toString() ?: "0.0"
-                }
-                "invernadero/tanque/nivel" -> {
-                    _nivelTanque.value = payload.toFloatOrNull()?.toString() ?: "0.0"
-                }
+                "invernadero/aire/temperatura" -> _temperaturaAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                "invernadero/aire/humedad" -> _humedadAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                "invernadero/suelo/humedad" -> _humedadSuelo.value = payload.toFloatOrNull()?.toString() ?: "0.0"
+                "invernadero/tanque/nivel" -> _nivelTanque.value = payload.toFloatOrNull()?.toString() ?: "0.0"
                 "invernadero/estado" -> _estado.value = payload
                 "invernadero/bomba/estado" -> _riegoEncendido.value = payload == "ON"
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
-                "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value =
-                    payload.toFloatOrNull() ?: _temperaturaObjetivo.value
-                "invernadero/objetivos/humedad" -> _humedadObjetivo.value =
-                    payload.toFloatOrNull() ?: _humedadObjetivo.value
+                "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
+                "invernadero/objetivos/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
 
                 "invernadero/alertas" -> {
                     mostrarNotificacion(context, "Alerta del invernadero", payload)
@@ -161,23 +165,37 @@ class VistaModeloMQTT : ViewModel() {
             }
         }
 
-
         topics.forEach { topic ->
             clienteMQTT.subscribeWith()
                 .topicFilter(topic)
                 .qos(MqttQos.AT_LEAST_ONCE)
                 .send()
+                .whenComplete { _, error ->
+                    if (error != null) {
+                        Log.e("MQTT", "Error al suscribirse a $topic", error)
+                        _conectadoMQTT.value = false
+                    }
+                }
         }
     }
 
+    // --- Publicación robusta con verificación ---
     private fun publicar(topic: String, mensaje: String) {
         clienteMQTT.publishWith()
             .topic(topic)
             .payload(mensaje.toByteArray(StandardCharsets.UTF_8))
             .send()
-        Log.d("MQTT", "Publicado en $topic: $mensaje")
+            .whenComplete { _, error ->
+                if (error != null) {
+                    Log.e("MQTT", "Error al publicar en $topic", error)
+                    _conectadoMQTT.value = false
+                } else {
+                    Log.d("MQTT", "Publicado en $topic: $mensaje")
+                }
+            }
     }
 
+    // --- Métodos de control ---
     fun setTemperaturaObjetivo(valor: Float) {
         _temperaturaObjetivo.value = valor
         publicar("invernadero/optimo/temperatura", valor.toString())
@@ -187,43 +205,70 @@ class VistaModeloMQTT : ViewModel() {
         _humedadObjetivo.value = valor
         publicar("invernadero/optimo/humedad", valor.toString())
     }
-
     fun alternarRiego() {
+        // Invertimos el estado actual de la bomba
         val nuevoEstado = !_riegoEncendido.value
         _riegoEncendido.value = nuevoEstado
+
+        // Publicamos el comando al topic correspondiente
         publicar("invernadero/bomba/cmd", if (nuevoEstado) "ON" else "OFF")
+
+        Log.d("MQTT", "Comando enviado a bomba: ${if (nuevoEstado) "ON" else "OFF"}")
     }
 
     fun alternarVentilacion() {
+        // Invertimos el estado actual de la ventilación
         val nuevoEstado = !_ventilacionEncendida.value
         _ventilacionEncendida.value = nuevoEstado
+
+        // Publicamos el comando al topic correspondiente
         publicar("invernadero/ventiladores/cmd", if (nuevoEstado) "ON" else "OFF")
+
+        Log.d("MQTT", "Comando enviado a ventiladores: ${if (nuevoEstado) "ON" else "OFF"}")
     }
 
     fun alternarPuerta() {
+        // Invertimos el estado actual de la puerta
         val nuevoEstado = !_puertaAbierta.value
         _puertaAbierta.value = nuevoEstado
+
+        // Publicamos el comando al topic correspondiente
         publicar("invernadero/servomotor1/cmd", if (nuevoEstado) "OPEN" else "CLOSE")
+
+        Log.d("MQTT", "Comando enviado a puerta: ${if (nuevoEstado) "OPEN" else "CLOSE"}")
     }
 
     fun alternarLuz() {
+        // Invertimos el estado actual de la luz
         val nuevoEstado = !_bombillaEncendida.value
         _bombillaEncendida.value = nuevoEstado
+
+        // Publicamos el comando al topic correspondiente
         publicar("invernadero/led/power", if (nuevoEstado) "ON" else "OFF")
+
+        Log.d("MQTT", "Comando enviado a luz: ${if (nuevoEstado) "ON" else "OFF"}")
     }
 
     fun publicarColorBombilla(color: Color) {
+        // Actualizamos el color en el estado local
         _colorBombilla.value = color
+
+        // Publicamos el color en formato HEX al topic correspondiente
         publicar("invernadero/led/cmd", color.aHex())
+
+        Log.d("MQTT", "Color de bombilla publicado: ${color.aHex()}")
     }
 
     fun setDireccionIP(nueva: String) {
+        // Permite cambiar la dirección IP del broker MQTT
         _direccionIP.value = nueva
     }
+
+    // --- Reconexiones periódicas ---
     fun iniciarReconexionesPeriodicas(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             while (true) {
-                kotlinx.coroutines.delay(10000) // cada 10 segundos
+                delay(10000) // cada 10 segundos
                 if (!_conectadoMQTT.value) {
                     Log.d("MQTT", "Reconectando MQTT automáticamente...")
                     inicializarMQTT(context)
@@ -232,14 +277,26 @@ class VistaModeloMQTT : ViewModel() {
         }
     }
 
+    // --- Watchdog de recepción ---
+    fun iniciarWatchdog(context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                delay(10000) // cada 10 segundos
+                val ahora = System.currentTimeMillis()
+                if (ahora - ultimoMensajeRecibido > 30000) {
+                    Log.w("MQTT", "Watchdog detecta inactividad, forzando reconexión...")
+                    _conectadoMQTT.value = false
+                    inicializarMQTT(context)
+                }
+            }
+        }
+    }
 }
 
+// --- Extensión para convertir Color a HEX ---
 fun Color.aHex(): String {
     val r = (red * 255).toInt()
     val g = (green * 255).toInt()
     val b = (blue * 255).toInt()
     return String.format("#%02X%02X%02X", r, g, b)
 }
-
-
-
