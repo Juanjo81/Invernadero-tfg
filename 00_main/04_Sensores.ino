@@ -41,37 +41,45 @@ void inicializarSensores() {
 }
 
 float leerHumedadSuelo() {
-  // Lecturas crudas
-  int raw = analogRead(SUELO_PIN);
+  // --- 1. Lecturas crudas de los dos sensores ---
+  int raw1 = analogRead(SUELO_PIN);
   int raw2 = analogRead(SUELO_PIN2);
 
-  // Trazabilidad cruda
-  mqtt.publish("invernadero", (String("valor de raw: ") + raw).c_str());
-  mqtt.publish("invernadero", (String("valor de raw2: ") + raw2).c_str());
+  // Publicamos trazabilidad cruda para depuración
+  mqtt.publish("invernadero/debug", (String("raw1: ") + raw1).c_str());
+  mqtt.publish("invernadero/debug", (String("raw2: ") + raw2).c_str());
 
-  // Verificación de rango válido para sensor 1
-  if (raw < 100 || raw > 4094) {
-    /*if (sensorSueloOK) {
-      mqtt.publish("invernadero/alertas", "Fallo en sensor de humedad del suelo", true);
-    }*/
+  // --- 2. Verificación de rango válido (salud del sensor principal) ---
+  // Si el valor está fuera de rango físico, marcamos fallo inmediato
+  if (raw1 < 100 || raw1 > 4094) {
     sensorSueloOK = false;
-    return 0.0;
+    return 0.0; // devolvemos 0 para indicar fallo
   }
 
-  sensorSueloOK = true;
+  // Si el valor está dentro de rango, no recuperamos el OK de golpe:
+  // usamos un contador de lecturas válidas consecutivas para evitar falsos positivos
+  static int lecturasValidas = 0;
+  lecturasValidas++;
+  if (lecturasValidas >= 3) { // por ejemplo, 3 lecturas seguidas correctas
+    sensorSueloOK = true;
+    lecturasValidas = 0; // reiniciamos el contador
+  }
 
-  // Normalización individual
-  float pct1 = ((SUELO_SECO - raw) / (SUELO_SECO - SUELO_MOJADO)) * 100.0;
+  // --- 3. Normalización individual ---
+  // Convertimos las lecturas crudas a porcentaje de humedad
+  float pct1 = ((SUELO_SECO - raw1) / (SUELO_SECO - SUELO_MOJADO)) * 100.0;
   float pct2 = ((SUELO_SECO2 - raw2) / (SUELO_SECO2 - SUELO_MOJADO2)) * 100.0;
 
+  // Limitamos los valores al rango 0–100 %
   pct1 = constrain(pct1, 0.0, 100.0);
   pct2 = constrain(pct2, 0.0, 100.0);
 
-  // Suavizado exponencial
+  // --- 4. Suavizado exponencial ---
+  // Aplicamos un filtro exponencial para estabilizar las lecturas
   humedadSuavizada1 = ALPHA * pct1 + (1.0 - ALPHA) * humedadSuavizada1;
   humedadSuavizada2 = ALPHA * pct2 + (1.0 - ALPHA) * humedadSuavizada2;
 
-  // Publicar solo si hay cambio significativo
+  // --- 5. Publicación solo si hay cambio significativo ---
   static float anterior1 = 0.0;
   static float anterior2 = 0.0;
 
@@ -85,12 +93,14 @@ float leerHumedadSuelo() {
     mqtt.publish("invernadero/humedadSuelo2", String(humedadSuavizada2, 1).c_str());
   }
 
-  // Trazabilidad de humedad suavizada
-  mqtt.publish("invernadero", (String("HUMEDAD1 suavizada: ") + humedadSuavizada1).c_str());
-  mqtt.publish("invernadero", (String("HUMEDAD2 suavizada: ") + humedadSuavizada2).c_str());
+  // --- 6. Trazabilidad de humedad suavizada ---
+  mqtt.publish("invernadero/debug", (String("HUMEDAD1 suavizada: ") + humedadSuavizada1).c_str());
+  mqtt.publish("invernadero/debug", (String("HUMEDAD2 suavizada: ") + humedadSuavizada2).c_str());
 
-  return humedadSuavizada1; // Devuelve la del sensor principal
+  // --- 7. Devolvemos la humedad suavizada del sensor principal ---
+  return humedadSuavizada1;
 }
+
 
 
 
@@ -286,37 +296,43 @@ void controlarRiegoActivo() {
   }
 }*/
 void actualizarEstadoVisual() {
-  // 1. Prioridad absoluta a fallos de sensores
   bool nivelOK = verificarSensorNivelDuranteRiego();
   bool sueloOK = verificarSensorSueloDuranteRiego();
   bool dhtOK   = verificarSensorDHTDuranteRiego();
-
+  // 1. Bloqueos de riego
   if (!nivelOK || !sueloOK) {
     if (!dhtOK) {
-      mostrarEstadoBloqueoTotal();        // Magenta: fallo en riego + ventilación
+      mostrarEstadoBloqueoTotal();        // Magenta
     } else {
-      mostrarEstadoBloqueoRiego();        // Rojo: fallo en riego
+      mostrarEstadoBloqueoRiego();        // Rojo
+    }
+    return;
+  }
+  // 2. Bloqueo de ventilación (pero riego OK)
+  if (!dhtOK) {
+    if (bombaOn) {
+      // Estado mixto: regando pero ventilación bloqueada
+      aplicarColor(0, 0, 255); // Azul
+      mqtt.publish("invernadero/estado", "RIEGO+BLOQUEO_VENTILACION", true);
+      estadoActual = ESTADO_RIEGO_BLOQUEO_VENTILACION;
+    } else {
+      mostrarEstadoBloqueoVentilacion();  // Naranja
     }
     return;
   }
 
-  if (!dhtOK) {
-    mostrarEstadoBloqueoVentilacion();    // Naranja: fallo en ventilación
-    return;
-  }
-
-  // 2. Si no hay fallo, respetamos el modo usuario
+  // 3. Si no hay fallo, respetamos modo manual
   if (ledsManual) return;
 
-  // 3. Estado automático si no hay modo usuario
+  // 4. Estado automático
   if (bombaOn && ventiladorOn) {
-    mostrarEstadoRiegoYVentilando();      // Cian: ambos activos
+    mostrarEstadoRiegoYVentilando();      // Cian
   } else if (bombaOn) {
-    mostrarEstadoRiego();                 // Azul: riego activo
+    mostrarEstadoRiego();                 // Azul
   } else if (ventiladorOn) {
-    mostrarEstadoVentilando();            // Amarillo: ventilación activa
+    mostrarEstadoVentilando();            // Amarillo
   } else {
-    mostrarEstadoNormal();                // Verde: sistema OK
+    mostrarEstadoNormal();                // Verde
   }
 }
 

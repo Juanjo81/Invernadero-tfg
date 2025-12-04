@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.7"
+#define VERSION_FIRMWARE "2.8.0"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -46,7 +46,8 @@ enum EstadoSistema {
   ESTADO_RIEGO_VENTILANDO,
   ESTADO_BLOQUEO_VENTILACION,
   ESTADO_BLOQUEO_RIEGO,
-  ESTADO_BLOQUEO_TOTAL
+  ESTADO_BLOQUEO_TOTAL,
+  ESTADO_RIEGO_BLOQUEO_VENTILACION
 };
 
 EstadoSistema estadoActual = ESTADO_OK; // valor inicial
