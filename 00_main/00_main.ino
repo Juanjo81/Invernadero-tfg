@@ -10,6 +10,7 @@ void inicializarSensores();
 void inicializarPantalla();
 void inicializarRed();
 void inicializarPID();
+void controlarRiegoActivo();
 void activarBombaPorPID(float f);
 void activarVentiladorPorPID(float f);
 float leerNivel();

@@ -252,7 +252,7 @@ void controlarRiegoActivo() {
 
   if ((modoManual || regandoPID) && bombaOn) {
     // Apagado por tiempo máximo en modo manual
-    if (modoManual && ahora - tInicioRiegoGlobal > TIEMPO_MAX_RIEGO) {
+    if (modoManual && ahora - tInicioRiegoGlobal > tiempoMaxRiego) {
       mqtt.publish("invernadero/debug/bloqueo", "Riego manual apagado por tiempo máximo");
       gestionarEvento("alerta", "Riego manual apagado por seguridad (tiempo máximo)");
       bombaApagar();

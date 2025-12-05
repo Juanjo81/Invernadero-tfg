@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.8.0"
+#define VERSION_FIRMWARE "2.8.5"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -23,7 +23,7 @@ const float SUELO_SECO2        = 2500.0;  // valor de suelo seco
 const float SUELO_MOJADO2        = 800.0;  // valor de suelo mojado
 const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
 const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
-const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos
+//const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos
 
 const unsigned long INTERVALO_SENSORES = 5000; 
 
@@ -38,6 +38,7 @@ float temperaturaActual = 0.0;
 float humedadActual = 0.0;
 float temperaturaObjetivo = 50.0;
 float humedadObjetivo = 0.0;
+float tiempoMaxRiego = 5000;
 bool modoUsuarioLED = false;
 enum EstadoSistema {
   ESTADO_OK,
@@ -60,13 +61,16 @@ static unsigned long tInicioRiegoGlobal = 0;
 // Comandos
 const char* T_BOMBA_CMD       = "invernadero/bomba/cmd";
 const char* T_BOMBA_ESTADO    = "invernadero/bomba/estado";
+const char* T_BOMBA_MAXIMO    = "invernadero/bomba/max";
 const char* T_SUELO_HUM_CMD   = "invernadero/suelo/humedad/cmd";
 const char* T_LED_CMD         = "invernadero/led/cmd";
 const char* T_LED_POWER       = "invernadero/led/power";
+const char* T_LED_MODO        = "invernadero/led/mode";
 const char* T_FAN_CMD         = "invernadero/ventiladores/cmd";
 const char* T_OPTIMO_TEMP     = "invernadero/optimo/temperatura";
 const char* T_OPTIMO_HUM      = "invernadero/optimo/humedad";
 const char* T_SERVO_CMD       = "invernadero/servomotor1/cmd";
+
 
 // Lecturas
 const char* T_SUELO_HUM       = "invernadero/suelo/humedad";

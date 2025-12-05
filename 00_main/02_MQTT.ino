@@ -55,90 +55,110 @@ void inicializarTopics(){
   mqtt.publish("invernadero/bomba/state", "", true);       // Limpia estado bomba
   mqtt.publish("invernadero/led/power", "", true); 
   mqtt.publish("invernadero/debug/bloqueo", "", true); 
-
+  qtt.publish("invernadero/notificaciones", "", true); 
 }
-// ====== MQTT CALLBACK ======
-void onMqtt(char* topic, byte* payload, unsigned int len){
+
+void onMqtt(char* topic, byte* payload, unsigned int len) {
+  Serial.print("Topic recibido: '");
+Serial.print(topic);
+Serial.println("'");
+
   String msg; msg.reserve(len);
-  for (unsigned int i=0;i<len;i++) msg += (char)payload[i];
+  for (unsigned int i = 0; i < len; i++) msg += (char)payload[i];
   msg.trim();
 
-  if (String(topic) == T_BOMBA_CMD){
+  if (String(topic) == T_BOMBA_CMD) {
     modoManual = true;
     if (msg.equalsIgnoreCase("ON"))  { bombaEncender(); }
     if (msg.equalsIgnoreCase("OFF")) { bombaApagar(); }
   }
-  else  if (String(topic) == T_FAN_CMD){
+  else if (String(topic) == T_FAN_CMD) {
     modoManualVentilador = true;
-    if (msg.equalsIgnoreCase("ON"))  { ventiladorEncender();  }
-    if (msg.equalsIgnoreCase("OFF")) { ventiladorApagar();   }
+    if (msg.equalsIgnoreCase("ON"))  { ventiladorEncender(); }
+    if (msg.equalsIgnoreCase("OFF")) { ventiladorApagar(); }
   }
-  else if (String(topic) == T_OPTIMO_HUM){
+  else if (String(topic) == T_OPTIMO_HUM) {
     modoManual = false;
     int v = msg.toInt();
     v = constrain(v, 0, 100);
-    humedadObjetivo  = v;
+    humedadObjetivo = v;
   }
-  else if (String(topic) == T_LED_CMD){
-  int r, g, b;
-  if (parseHexColor(msg, r, g, b) || (sscanf(msg.c_str(), "%d,%d,%d", &r, &g, &b) == 3)) {
-    ledsEncendidos = true;
-    ledsManual = true;
-    aplicarColor(r, g, b);
+  else if (String(topic) == T_LED_CMD) {
+    int r, g, b;
+    if (parseHexColor(msg, r, g, b) || (sscanf(msg.c_str(), "%d,%d,%d", &r, &g, &b) == 3)) {
+      ledsEncendidos = true;
+      ledsManual = true;
+      aplicarColor(r, g, b);
+    }
   }
-}
-else if (String(topic) == T_LED_POWER){
-  if (msg.equalsIgnoreCase("OFF")) {
-    ledsEncendidos = false;
-    ledsManual = false;
-    aplicarColor(ultimoR, ultimoG, ultimoB);
+  else if (String(topic) == T_LED_POWER) {
+    if (msg.equalsIgnoreCase("OFF")) {
+      ledsEncendidos = false;
+      ledsManual = false;
+      aplicarColor(ultimoR, ultimoG, ultimoB);
+    }
+    else if (msg.equalsIgnoreCase("ON")) {
+      ledsEncendidos = true;
+      ledsManual = false;
+      aplicarColor(ultimoR, ultimoG, ultimoB);
+    }
   }
-  else if (msg.equalsIgnoreCase("ON")) {
-    ledsEncendidos = true;
-    ledsManual = false;
-    aplicarColor(ultimoR, ultimoG, ultimoB);
+  else if (String(topic) == T_LED_MODO) {
+    if (msg.equalsIgnoreCase("USER")) { modoUsuarioLED = true; }
+    else if (msg.equalsIgnoreCase("AUTO")) { modoUsuarioLED = false; }
+  }
+  else if (String(topic) == T_BOMBA_MAXIMO) {
+    unsigned long tiempo = msg.toInt();
+      tiempoMaxRiego = tiempo;
+      Serial.print("⏱ Tiempo máximo de riego actualizado: ");
+      Serial.println(tiempoMaxRiego);
+    
+  }
+  else if (String(topic) == T_OPTIMO_TEMP) {
+    modoManualVentilador = false;
+    int v = msg.toInt();
+    v = constrain(v, 10, 100);
+    temperaturaObjetivo = v;
+  }
+  else if (String(topic) == T_SERVO_CMD) {
+    if (msg.equalsIgnoreCase("OPEN")) {
+      servoMotor.write(120);
+      servoMotor2.write(120);
+      tapaAbierta = true;
+      Serial.println("Tapa abierta");
+    }
+    else if (msg.equalsIgnoreCase("CLOSE")) {
+      servoMotor.write(0);
+      servoMotor2.write(0);
+      tapaAbierta = false;
+      Serial.println("Tapa cerrada");
+    }
   }
 }
 
-else if (String(topic) == T_OPTIMO_TEMP){
-  modoManualVentilador = false;
-  int v = msg.toInt();
-  v = constrain(v, 10, 100);
-  temperaturaObjetivo  = v;
-  }
-else if (String(topic) == T_SERVO_CMD){
-  if (msg.equalsIgnoreCase("OPEN")) {
-    servoMotor.write(120);
-    servoMotor2.write(120);
-    tapaAbierta = true;
-    Serial.println("Tapa abierta");
-  }
-  else if (msg.equalsIgnoreCase("CLOSE")) {
-    servoMotor.write(0);
-    servoMotor2.write(0);
-    tapaAbierta = false;
-    Serial.println("Tapa cerrada");
-  }
-  }
-}
-
-void connectMQTT(){
+void connectMQTT() {
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onMqtt);
-  while (!mqtt.connected()){
-    if (mqtt.connect("esp32-invernadero", MQTT_USER, MQTT_PASS)){       
+
+  while (!mqtt.connected()) {
+    if (mqtt.connect("esp32-invernadero", MQTT_USER, MQTT_PASS)) {
+      // Suscripciones necesarias
       mqtt.subscribe(T_BOMBA_CMD, 1);
+      mqtt.subscribe(T_BOMBA_MAXIMO, 1);      // ← añade esta
       mqtt.subscribe(T_OPTIMO_HUM, 1);
+      mqtt.subscribe(T_OPTIMO_TEMP, 1);
+      mqtt.subscribe(T_FAN_CMD, 1);
       mqtt.subscribe(T_LED_CMD, 1);
       mqtt.subscribe(T_LED_POWER, 1);
-      mqtt.subscribe(T_FAN_CMD, 1);
-      mqtt.subscribe(T_OPTIMO_TEMP, 1);
-      mqtt.subscribe(T_SERVO_CMD);
+      mqtt.subscribe(T_LED_MODO, 1);          // ← añade esta si quieres controlar modo LED
+      mqtt.subscribe(T_SERVO_CMD, 1);
     } else {
       delay(500);
     }
- }
-
-
+  }
 }
+
+
+
+
 
