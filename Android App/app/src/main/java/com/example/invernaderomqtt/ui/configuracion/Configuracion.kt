@@ -4,8 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -23,44 +22,53 @@ fun ConfiguracionScreen(vistaModelo: VistaModeloMQTT) {
     val colorLedUsuario by vistaModelo.colorBombilla.collectAsState()
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()) // 👈 scroll activado
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("⚙️ Configuración PID", color = Color.White, fontSize = 22.sp)
+            item {
+                Text("⚙️ Configuración PID", color = Color.White, fontSize = 22.sp)
+            }
 
-            TarjetaConfiguracion(
-                titulo = "Temperatura Objetivo",
-                unidad = "°C",
-                valorActual = temperaturaObjetivo,
-                rango = 20f..45f,
-                onFinalizarCambio = { vistaModelo.setTemperaturaObjetivo(it) }
-            )
+            item {
+                TarjetaConfiguracion(
+                    titulo = "Temperatura Objetivo",
+                    unidad = "°C",
+                    valorActual = temperaturaObjetivo,
+                    rango = 20f..45f,
+                    onFinalizarCambio = { vistaModelo.setTemperaturaObjetivo(it) }
+                )
+            }
 
-            TarjetaConfiguracion(
-                titulo = "Humedad Objetivo",
-                unidad = "%",
-                valorActual = humedadObjetivo,
-                rango = 0f..100f,
-                onFinalizarCambio = { vistaModelo.setHumedadObjetivo(it) }
-            )
+            item {
+                TarjetaConfiguracion(
+                    titulo = "Humedad Objetivo",
+                    unidad = "%",
+                    valorActual = humedadObjetivo,
+                    rango = 0f..100f,
+                    onFinalizarCambio = { vistaModelo.setHumedadObjetivo(it) }
+                )
+            }
 
-            TarjetaConfiguracion(
-                titulo = "Tiempo Máximo Riego Manual",
-                unidad = "segundos",
-                valorActual = tiempoMaxRiego.toFloat(),
-                rango = 5f..300f,
-                onFinalizarCambio = { vistaModelo.setTiempoMaxRiego(it) }
-            )
+            item {
+                TarjetaConfiguracion(
+                    titulo = "Tiempo Máximo Riego Manual",
+                    unidad = "segundos",
+                    valorActual = tiempoMaxRiego.toFloat(),
+                    rango = 5f..300f,
+                    onFinalizarCambio = { vistaModelo.setTiempoMaxRiego(it) }
+                )
+            }
 
-            TarjetaColorLed(
-                colorActual = colorLedUsuario,
-                onColorSeleccionado = { color -> vistaModelo.setModoUsuarioLed(color) },
-                onVolverAutomatico = { vistaModelo.setModoAutomaticoLed() }
-            )
+            item {
+                TarjetaColorLed(
+                    colorActual = colorLedUsuario,
+                    onColorSeleccionado = { color -> vistaModelo.setModoUsuarioLed(color) },
+                    onVolverAutomatico = { vistaModelo.setModoAutomaticoLed() }
+                )
+            }
         }
     }
 }
@@ -73,6 +81,7 @@ fun TarjetaColorLed(
 ) {
     var mostrarPicker by remember { mutableStateOf(false) }
     var mostrarConfirmacion by remember { mutableStateOf(false) }
+    var mostrarDialogoAuto by remember { mutableStateOf(false) }
     var colorSeleccionado by remember { mutableStateOf(colorActual) }
 
     Column(
@@ -91,6 +100,7 @@ fun TarjetaColorLed(
             Button(onClick = {
                 onVolverAutomatico()
                 mostrarConfirmacion = true
+                mostrarDialogoAuto = true
             }) {
                 Text("Modo automático")
             }
@@ -111,6 +121,19 @@ fun TarjetaColorLed(
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
+    }
+
+    if (mostrarDialogoAuto) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoAuto = false },
+            title = { Text("LEDs") },
+            text = { Text("Volviendo a modo automático") },
+            confirmButton = {
+                TextButton(onClick = { mostrarDialogoAuto = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     if (mostrarPicker) {
@@ -148,7 +171,6 @@ fun ColorRGBPicker(
         title = { Text("Selecciona color de luz") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // 🔹 Colores predefinidos
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     coloresPredefinidos.forEach { color ->
                         Box(
@@ -166,7 +188,6 @@ fun ColorRGBPicker(
                     }
                 }
 
-                // 🔹 Sliders RGB
                 Text("Rojo: $red", color = Color.Red)
                 Slider(value = red.toFloat(), onValueChange = {
                     red = it.toInt()
@@ -185,7 +206,6 @@ fun ColorRGBPicker(
                     onColorSeleccionado(Color(red, green, blue))
                 }, valueRange = 0f..255f)
 
-                // 🔹 Preview
                 Box(
                     modifier = Modifier
                         .size(40.dp)

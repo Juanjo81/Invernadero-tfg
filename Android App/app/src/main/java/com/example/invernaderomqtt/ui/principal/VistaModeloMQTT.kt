@@ -78,7 +78,6 @@ class VistaModeloMQTT : ViewModel() {
 
     // --- Inicialización del cliente MQTT ---
     fun inicializarMQTT(context: Context) {
-        // 👇 siempre reconstruimos el cliente con la IP actual
         clienteMQTT = MqttClient.builder()
             .useMqttVersion3()
             .serverHost(_direccionIP.value)
@@ -111,10 +110,11 @@ class VistaModeloMQTT : ViewModel() {
             "invernadero/aire/humedad",
             "invernadero/suelo/humedad",
             "invernadero/bomba/estado",
-            "invernadero/bomba/max",          // ⏱ tiempo máximo de riego
+            "invernadero/bomba/max",
             "invernadero/tanque/nivel",
             "invernadero/led/power",
-            "invernadero/led/cmd",            // 🎨 color bombilla
+            "invernadero/led/cmd",
+            "invernadero/led/modo",
             "invernadero/alertas",
             "invernadero/notificaciones",
             "invernadero/objetivos/temperatura",
@@ -173,6 +173,8 @@ class VistaModeloMQTT : ViewModel() {
                         repo.registrarEvento("info", payload, topic)
                     }
                 }
+
+
             }
         }
 
@@ -277,8 +279,12 @@ class VistaModeloMQTT : ViewModel() {
 
     // 🔧 Volver a modo automático de LEDs
     fun setModoAutomaticoLed() {
-        publicar("invernadero/led/mode", "AUTO") // activa modo automático
+        _colorBombilla.value = Color.Green
+        publicar("invernadero/led/cmd", "#00FF00") // 👈 fuerza verde en el LED físico
+        publicar("invernadero/led/mode", "AUTO")
+
     }
+
 
     fun setDireccionIP(nueva: String) {
         // Permite cambiar la dirección IP del broker MQTT

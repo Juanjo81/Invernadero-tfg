@@ -278,7 +278,7 @@ fun MenuActuadores(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // 🔧 Botón de bomba: deshabilitado si bloqueo de riego o total
+                //  Botón de bomba: deshabilitado si bloqueo de riego o total
                 BotonControl(
                     icono = Icons.Default.Opacity,
                     etiqueta = "Bomba",
@@ -288,7 +288,7 @@ fun MenuActuadores(
                     vistaModelo.alternarRiego()
                 }
 
-                // 🔧 Botón de ventilador: deshabilitado si bloqueo de ventilación o total
+                //  Botón de ventilador: deshabilitado si bloqueo de ventilación o total
                 BotonControl(
                     icono = Icons.Default.AcUnit,
                     etiqueta = "Ventilador",
