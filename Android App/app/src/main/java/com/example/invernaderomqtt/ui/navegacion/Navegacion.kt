@@ -43,6 +43,11 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +71,24 @@ fun MenuGlobalTopBar(
     )
 
     TopAppBar(
-        title = { Text(titulo, fontSize = 18.sp, color = Color.White) },
+        title = {
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = Color.White)) {
+                        append("Invernadero")
+                    }
+                    append(" ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF64B5F6))) {
+                        append("TFG")
+                    }
+                },
+                fontSize = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+
+
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A)),
         actions = {
             IconButton(onClick = { expanded = true }) {
@@ -148,14 +170,14 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
             modifier = Modifier.padding(padding)
         ) {
             composable("principal") { PantallaPrincipal(navController = controlNavegacion, vistaModelo = vistaModelo) }
-            composable("configuracion_pid") { ConfiguracionScreen() }
+            composable("configuracion_pid") { ConfiguracionScreen(vistaModelo) }
             composable("camara") { CamaraStreamScreen(vistaModelo = vistaModelo) }
             composable("historial_eventos") { PantallaHistorial() }
-            composable("configuracion_servidor") { ConfiguracionServidorScreen() }
+            composable("configuracion_servidor") { ConfiguracionServidorScreen(navController = controlNavegacion, vistaModelo = vistaModelo) }
             composable("about") { PantallaAbout() }
         }
-    } // ← cierre del Scaffold
-}   // ← cierre de NavegacionApp
+    }
+}
 @Composable
 fun CamaraStreamScreen(vistaModelo: VistaModeloMQTT? = null) {
     val context = LocalContext.current

@@ -14,17 +14,19 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.invernaderomqtt.ui.principal.VistaModeloMQTT
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 @Composable
-fun ConfiguracionServidorScreen() {
-    val viewModel: VistaModeloMQTT = viewModel()
+fun ConfiguracionServidorScreen(navController: NavHostController, vistaModelo: VistaModeloMQTT) {
+
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var textoServidor by remember { mutableStateOf(TextFieldValue(viewModel.direccionIP.value)) }
+    var textoServidor by remember { mutableStateOf(TextFieldValue(vistaModelo.direccionIP.value)) }
+    var mostrarDialogoError by remember { mutableStateOf(false) }
+    var mostrarDialogoOk by remember { mutableStateOf(false) }
     var mensajePopup by remember { mutableStateOf<String?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
@@ -66,36 +68,76 @@ fun ConfiguracionServidorScreen() {
             ) {
                 Button(onClick = {
                     scope.launch {
-                        viewModel.setDireccionIP(textoServidor.text)
-                        viewModel.inicializarMQTT(contexto)
+                        vistaModelo.setDireccionIP(textoServidor.text)
+                        vistaModelo.inicializarMQTT(contexto)
                         delay(1500) // esperar a que se complete la conexión
 
-                        if (viewModel.conectadoMQTT.value) {
+                        if (vistaModelo.conectadoMQTT.value) {
                             mensajePopup = "✅ Conectado correctamente a ${textoServidor.text}"
+                            mostrarDialogoOk = true
                         } else {
                             mensajePopup = "❌ Error al conectar con ${textoServidor.text}"
+                            mostrarDialogoError = true
                         }
                     }
                 }) {
-                    Text("Conectar")
+                    Text("Añadir")
                 }
 
                 Button(onClick = {
-                    textoServidor = TextFieldValue(viewModel.direccionIP.value)
+                    textoServidor = TextFieldValue(vistaModelo.direccionIP.value)
                     mensajePopup = null
                 }) {
                     Text("Cancelar")
                 }
             }
-
-            if (mensajePopup != null) {
-                Text(
-                    text = mensajePopup!!,
-                    color = if (mensajePopup!!.startsWith("✅")) Color(0xFF81C784) else Color.Red,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
         }
+    }
+
+    // 🔹 Diálogo si falla la conexión
+    if (mostrarDialogoError) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoError = false },
+            title = { Text("Error de conexión") },
+            text = { Text("Ha fallado la conexión con ${textoServidor.text}. ¿Quieres añadir igualmente este servidor?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarDialogoError = false
+                    // 👇 Guardar la IP aunque falle
+                    vistaModelo.setDireccionIP(textoServidor.text)
+
+                    // 👇 Navegar al principal
+                    navController.navigate("principal") {
+                        popUpTo("principal") { inclusive = true }
+                    }
+                }) {
+                    Text("Sí, añadir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoError = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // 🔹 Diálogo si conecta correctamente
+    if (mostrarDialogoOk) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoOk = false },
+            title = { Text("Conexión exitosa") },
+            text = { Text(mensajePopup ?: "✅ Conectado") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarDialogoOk = false
+                    navController.navigate("principal") {
+                        popUpTo("principal") { inclusive = true }
+                    }
+                }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

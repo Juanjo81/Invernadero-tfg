@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -47,151 +48,99 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-
-    ModalDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .background(Color(0xFF1B1B1B))
-                    .padding(16.dp)
-            ) {
-                Text("Menú", color = Color.White, fontSize = 20.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                DrawerItem("Configuración PID") {
-                    navController.navigate("configuracion_pid")
-                    scope.launch { drawerState.close() }
-                }
-
-                DrawerItem("Historial Eventos") {
-                    navController.navigate("historial_eventos")
-                    scope.launch { drawerState.close() }
-                }
-
-                DrawerItem("Configuración Servidor") {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // 🔹 Bloque de conexión MQTT arriba
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1A1A1A))
+                .padding(vertical = 4.dp)
+                .clickable(enabled = !conectado) {
                     navController.navigate("configuracion_servidor")
-                    scope.launch { drawerState.close() }
-                }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (conectado) {
+                    "✅ Conectado MQTT: $direccionIP"
+                } else {
+                    "❌ No conectado a $direccionIP"
+                },
+                color = if (conectado) Color.Green else Color.Red,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center
+            )
 
-                DrawerItem("About") {
-                    navController.navigate("about")
-                    scope.launch { drawerState.close() }
-                }
+        }
 
-                DrawerItem("Salir") {
-                    scope.launch { drawerState.close() }
-                }
-            }
-        },
-        content = {
+        // 🔹 Luego las columnas con sensores
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 🟥 Columna izquierda
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .background(Color.Black)
-                    .padding(16.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    IconButton(onClick = {
-                        scope.launch { drawerState.open() }
-                    }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Abrir menú", tint = Color.White)
-                    }
-
-                    Text(
-                        text = "Menú",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-
-
-
-                Text(
-                    text = if (conectado) "Conectado MQTT: $direccionIP" else "No conectado",
-                    color = if (conectado) Color.Green else Color.Red,
-                    fontSize = 16.sp
+                TarjetaSensor(
+                    titulo = "Temperatura Aire",
+                    valor = "${temperatura}°C",
+                    color = obtenerColorTemperatura(temperatura.toFloat()),
+                    topic = "invernadero/aire/temperatura",
+                    modifier = Modifier.fillMaxWidth()
                 )
-
-                Row(
+                TarjetaSensor(
+                    titulo = "Humedad Aire",
+                    valor = "${humedad}%",
+                    color = obtenerColorAgua(humedad.toFloat()),
+                    topic = "invernadero/aire/humedad",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .height(150.dp)
+                        .clickable { navController.navigate("camara") },
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = 4.dp
                 ) {
-                    // 🟥 Columna izquierda
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TarjetaSensor(
-                            titulo = "Temperatura Aire",
-                            valor = "${temperatura}°C",
-                            color = obtenerColorTemperatura(temperatura.toFloat()),
-                            topic = "invernadero/aire/temperatura",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        TarjetaSensor(
-                            titulo = "Humedad Aire",
-                            valor = "${humedad}%",
-                            color = obtenerColorAgua(humedad.toFloat()),
-                            topic = "invernadero/aire/humedad",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp)
-                                .clickable { navController.navigate("camara") },
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = 4.dp
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.invernadero_foto),
-                                contentDescription = "Vista del invernadero",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-
-                    // 🟦 Columna derecha
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TarjetaCircular(
-                            titulo = "Humedad Suelo",
-                            valor = humedadSuelo.toFloat(),
-                            color = obtenerColorAgua(humedadSuelo.toFloat()),
-                            topic = "invernadero/suelo/humedad",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        TarjetaDeposito(
-                            nivel = nivelDeposito.toFloat(),
-                            topic = "invernadero/tanque/nivel",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        TarjetaSensor(
-                            titulo = "Humedad Aire",
-                            valor = "${humedad}%",
-                            color = obtenerColorAgua(humedad.toFloat()),
-                            topic = "invernadero/aire/humedad",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.invernadero_foto),
+                        contentDescription = "Vista del invernadero",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
+
+            // 🟦 Columna derecha
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TarjetaCircular(
+                    titulo = "Humedad Suelo",
+                    valor = humedadSuelo.toFloat(),
+                    color = obtenerColorAgua(humedadSuelo.toFloat()),
+                    topic = "invernadero/suelo/humedad",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TarjetaDeposito(
+                    nivel = nivelDeposito.toFloat(),
+                    topic = "invernadero/tanque/nivel",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
-    )
+    }
 }
+
 
 @Composable
 fun DrawerItem(texto: String, onClick: () -> Unit) {

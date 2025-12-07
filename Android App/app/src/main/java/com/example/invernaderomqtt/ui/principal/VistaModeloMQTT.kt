@@ -68,11 +68,17 @@ class VistaModeloMQTT : ViewModel() {
     private val _colorBombilla = MutableStateFlow(Color.White)
     val colorBombilla: StateFlow<Color> = _colorBombilla
 
+
+    private val _tiempoMaxRiego = MutableStateFlow(5f)
+    val tiempoMaxRiego: StateFlow<Float> = _tiempoMaxRiego
+
+
     private val _estado = MutableStateFlow("OK")
     val estadoVisual: StateFlow<String> = _estado
 
     // --- Inicialización del cliente MQTT ---
     fun inicializarMQTT(context: Context) {
+        // 👇 siempre reconstruimos el cliente con la IP actual
         clienteMQTT = MqttClient.builder()
             .useMqttVersion3()
             .serverHost(_direccionIP.value)
@@ -80,7 +86,6 @@ class VistaModeloMQTT : ViewModel() {
             .identifier("invernaderoApp")
             .buildAsync()
 
-        // Opciones de conexión con keepAlive
         clienteMQTT.connectWith()
             .keepAlive(30)
             .cleanSession(false)
@@ -89,13 +94,15 @@ class VistaModeloMQTT : ViewModel() {
                 if (error == null) {
                     _conectadoMQTT.value = true
                     suscribirseATopics(context)
-                    Log.d("MQTT", "Conectado correctamente")
+                    Log.d("MQTT", "Conectado correctamente a ${_direccionIP.value}")
                 } else {
-                    Log.e("MQTT", "Error al conectar", error)
+                    Log.e("MQTT", "Error al conectar a ${_direccionIP.value}", error)
                     _conectadoMQTT.value = false
                 }
-        }
+            }
     }
+
+
 
     // --- Suscripción a topics ---
     private fun suscribirseATopics(context: Context) {
@@ -104,8 +111,10 @@ class VistaModeloMQTT : ViewModel() {
             "invernadero/aire/humedad",
             "invernadero/suelo/humedad",
             "invernadero/bomba/estado",
+            "invernadero/bomba/max",          // ⏱ tiempo máximo de riego
             "invernadero/tanque/nivel",
             "invernadero/led/power",
+            "invernadero/led/cmd",            // 🎨 color bombilla
             "invernadero/alertas",
             "invernadero/notificaciones",
             "invernadero/objetivos/temperatura",
@@ -141,7 +150,9 @@ class VistaModeloMQTT : ViewModel() {
                 "invernadero/tanque/nivel" -> _nivelTanque.value = payload.toFloatOrNull()?.toString() ?: "0.0"
                 "invernadero/estado" -> _estado.value = payload
                 "invernadero/bomba/estado" -> _riegoEncendido.value = payload == "ON"
+                "invernadero/bomba/max" -> _tiempoMaxRiego.value = payload.toFloatOrNull() ?: _tiempoMaxRiego.value
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
+                "invernadero/led/cmd" -> _colorBombilla.value = Color(android.graphics.Color.parseColor(payload))
                 "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
                 "invernadero/objetivos/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
 
@@ -165,7 +176,9 @@ class VistaModeloMQTT : ViewModel() {
             }
         }
 
-        topics.forEach { topic ->
+
+
+    topics.forEach { topic ->
             clienteMQTT.subscribeWith()
                 .topicFilter(topic)
                 .qos(MqttQos.AT_LEAST_ONCE)
@@ -188,12 +201,12 @@ class VistaModeloMQTT : ViewModel() {
             .whenComplete { _, error ->
                 if (error != null) {
                     Log.e("MQTT", "Error al publicar en $topic", error)
-                    _conectadoMQTT.value = false
                 } else {
                     Log.d("MQTT", "Publicado en $topic: $mensaje")
                 }
             }
     }
+
 
     // --- Métodos de control ---
     fun setTemperaturaObjetivo(valor: Float) {
@@ -249,14 +262,22 @@ class VistaModeloMQTT : ViewModel() {
         Log.d("MQTT", "Comando enviado a luz: ${if (nuevoEstado) "ON" else "OFF"}")
     }
 
-    fun publicarColorBombilla(color: Color) {
-        // Actualizamos el color en el estado local
+    // 🔧 Color LED en modo usuario (usa T_LED_CMD)
+
+    fun setModoUsuarioLed(color: Color) {
         _colorBombilla.value = color
+        val hex = String.format("#%02X%02X%02X",
+            (color.red * 255).toInt(),
+            (color.green * 255).toInt(),
+            (color.blue * 255).toInt()
+        )
+        publicar("invernadero/led/cmd", hex)
+        publicar("invernadero/led/mode", "USER") // activa modo usuario
+    }
 
-        // Publicamos el color en formato HEX al topic correspondiente
-        publicar("invernadero/led/cmd", color.aHex())
-
-        Log.d("MQTT", "Color de bombilla publicado: ${color.aHex()}")
+    // 🔧 Volver a modo automático de LEDs
+    fun setModoAutomaticoLed() {
+        publicar("invernadero/led/mode", "AUTO") // activa modo automático
     }
 
     fun setDireccionIP(nueva: String) {
@@ -264,33 +285,29 @@ class VistaModeloMQTT : ViewModel() {
         _direccionIP.value = nueva
     }
 
-    // --- Reconexiones periódicas ---
-    fun iniciarReconexionesPeriodicas(context: Context) {
+    // 🔧 Tiempo máximo de riego manual (segundos)
+    fun setTiempoMaxRiego(valorSegundos: Float) {
+        _tiempoMaxRiego.value = valorSegundos
+        val milis = valorSegundos * 1000
+        publicar("invernadero/bomba/max", milis.toString())
+    }
+
+
+    // --- Watchdog de recepción ---
+    fun iniciarWatchdog() {
         CoroutineScope(Dispatchers.IO).launch {
             while (true) {
-                delay(10000) // cada 10 segundos
-                if (!_conectadoMQTT.value) {
-                    Log.d("MQTT", "Reconectando MQTT automáticamente...")
-                    inicializarMQTT(context)
+                delay(10000)
+                val ahora = System.currentTimeMillis()
+                if (ahora - ultimoMensajeRecibido > 30000) {
+                    Log.w("MQTT", "Watchdog detecta inactividad")
+                    _conectadoMQTT.value = false
+
                 }
             }
         }
     }
 
-    // --- Watchdog de recepción ---
-    fun iniciarWatchdog(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
-            while (true) {
-                delay(10000) // cada 10 segundos
-                val ahora = System.currentTimeMillis()
-                if (ahora - ultimoMensajeRecibido > 30000) {
-                    Log.w("MQTT", "Watchdog detecta inactividad, forzando reconexión...")
-                    _conectadoMQTT.value = false
-                    inicializarMQTT(context)
-                }
-            }
-        }
-    }
 }
 
 // --- Extensión para convertir Color a HEX ---
