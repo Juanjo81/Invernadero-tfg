@@ -1,5 +1,5 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.8.5"
+#define VERSION_FIRMWARE "2.9.0"
 
 // ====== PINES ======
 #define DHTPIN           4
@@ -20,7 +20,7 @@
 const float SUELO_SECO        = 4100.0;  // valor de suelo seco
 const float SUELO_MOJADO        = 500.0;  // valor de suelo mojado
 const float SUELO_SECO2        = 2500.0;  // valor de suelo seco
-const float SUELO_MOJADO2        = 800.0;  // valor de suelo mojado
+const float SUELO_MOJADO2        = 500.0;  // valor de suelo mojado
 const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
 const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
 //const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos

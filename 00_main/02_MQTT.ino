@@ -55,7 +55,9 @@ void inicializarTopics(){
   mqtt.publish("invernadero/bomba/state", "", true);       // Limpia estado bomba
   mqtt.publish("invernadero/led/power", "", true); 
   mqtt.publish("invernadero/debug/bloqueo", "", true); 
-  qtt.publish("invernadero/notificaciones", "", true); 
+  mqtt.publish("invernadero/notificaciones", "", true); 
+  mqtt.publish("invernadero/estado", "", true);
+
 }
 
 void onMqtt(char* topic, byte* payload, unsigned int len) {
@@ -104,8 +106,8 @@ Serial.println("'");
     }
   }
   else if (String(topic) == T_LED_MODO) {
-    if (msg.equalsIgnoreCase("USER")) { modoUsuarioLED = true; }
-    else if (msg.equalsIgnoreCase("AUTO")) { modoUsuarioLED = false; }
+    if (msg.equalsIgnoreCase("USER")) { ledsManual = true; }
+    else if (msg.equalsIgnoreCase("AUTO")) { ledsManual = false;  actualizarEstadoVisual(); }
   }
   else if (String(topic) == T_BOMBA_MAXIMO) {
     unsigned long tiempo = msg.toInt();

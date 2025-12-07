@@ -18,6 +18,7 @@ extern bool modoManual;
 extern bool regandoPID;
 extern bool bombaOn;
 extern bool ledsEncendidos;
+extern bool ledsManual;
 // Parámetros de suavizado
 const float ALPHA = 0.1;            // Factor de suavizado (0.1 = muy suave)
 const float CAMBIO_MINIMO = 1.0;    // Umbral mínimo para publicar
@@ -98,7 +99,7 @@ float leerHumedadSuelo() {
   mqtt.publish("invernadero/debug", (String("HUMEDAD2 suavizada: ") + humedadSuavizada2).c_str());
 
   // --- 7. Devolvemos la humedad suavizada del sensor principal ---
-  return humedadSuavizada1;
+  return humedadSuavizada2;
 }
 
 
