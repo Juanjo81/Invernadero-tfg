@@ -153,6 +153,7 @@ float leerNivel() {
 }
 
 void publicarSensores(float sueloPct, float t, float h, float nivelPct) {
+
   if (millis() - t_pub > 5000) {
     mqtt.publish(T_SUELO_HUM, String(sueloPct, 2).c_str(), true);
     mqtt.publish(T_AIRE_TEMP, String(t, 1).c_str(), true);

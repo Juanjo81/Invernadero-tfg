@@ -29,6 +29,9 @@ PubSubClient mqtt(espClient);
 void inicializarRed() {
   connectWiFi();
   connectMQTT();
+  //hora
+  configTime(3600, 0, "pool.ntp.org", "time.nist.gov");
+
 }
 
 void connectWiFi(){

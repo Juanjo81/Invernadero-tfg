@@ -6,7 +6,7 @@ PIDControl pidHum;
 
 // --- Constantes PID ---
 const float KpTemp = 2.0, KiTemp = 0.1, KdTemp = 0.5;
-const float KpHum  = 3.0, KiHum  = 0.2, KdHum  = 0.8;
+const float KpHum  = 1.5, KiHum  = 0.05, KdHum  = 0.4;
 
 // --- Variables externas ---
 extern float temperaturaActual;
@@ -64,10 +64,26 @@ void activarBombaPorPID(float salidaPID) {
     return;
   }
 
-  // 4. Evaluación PID cada 5 segundos
-  if (ahora - tEvaluacion >= 5000) {
-    tEvaluacion = ahora;
-    duracionRiego = calcularTiempoPID(salidaPID, 5000);
+ // 4. Evaluación PID cada 5 segundos
+    if (ahora - tEvaluacion >= 5000) {
+      tEvaluacion = ahora;
+      duracionRiego = calcularTiempoPID(salidaPID, 5000);
+
+      // --- Publicación para trazabilidad de gráfica ---
+      unsigned long tiempoSeg = ahora / 1000;
+      //Hora
+      time_t now = time(nullptr);
+      struct tm* timeinfo = localtime(&now);
+
+      char fechaHora[30];
+      strftime(fechaHora, sizeof(fechaHora), "%Y-%m-%d %H:%M:%S", timeinfo);
+      String datos = "{";
+      datos += "\"Fecha\":" + String(fechaHora) + ",";
+      datos += "\"hum_actual\":" + String(sueloPct) + ",";
+      datos += "\"hum_objetivo\":" + String(humedadObjetivo) + ",";
+      datos += "\"tiempo_riego\":" + String(duracionRiego);
+      datos += "}";
+      mqtt.publish("invernadero/datosGrafica", datos.c_str());
 
     if (duracionRiego > 0) {
       digitalWrite(CH1_IN, HIGH);
