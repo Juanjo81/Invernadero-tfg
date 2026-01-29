@@ -72,7 +72,7 @@ void compruebaVersion(unsigned long ahora) {
         WiFiClientSecure updateClient;
         updateClient.setInsecure();
 
-        t_httpUpdate_return resultado = httpUpdate.update(updateClient, "https://192.168.1.30/index.php/s/3G6FWaYwZCptrH9/download/firmware.bin");
+        t_httpUpdate_return resultado = httpUpdate.update(updateClient, "https://192.168.1.30/index.php/s/ppKr4QSsabjcYam/download/firmware.bin");
 
         if (resultado == HTTP_UPDATE_OK) {
           mqtt.publish("invernadero/estado/firmware", "Actualización OTA completada con éxito. Reiniciando...");

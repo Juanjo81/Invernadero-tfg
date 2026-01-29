@@ -9,7 +9,7 @@ extern const float KpHum, KiHum, KdHum;
 extern bool tapaAbierta;
 bool regandoPID = false;
 unsigned long tCooldown = 0;
-const unsigned long COOLDOWN_RIEGO = 10000; 
+const unsigned long COOLDOWN_RIEGO = 15000; 
 
 void activarBombaPorPID(float salidaPID) {
   static unsigned long tEvaluacion = 0;
@@ -41,9 +41,7 @@ void activarBombaPorPID(float salidaPID) {
     }
     return;
   }
-  if (!regandoPID && (ahora - tCooldown < COOLDOWN_RIEGO)) {
-    return; // todavía en cooldown, no riego
-  }
+
   if (ahora - tEvaluacion >= EVALUACION_PID) {
     tEvaluacion = ahora;
     salidaPID = constrain(salidaPID, PID_MIN, PID_MAX);
@@ -63,6 +61,9 @@ void activarBombaPorPID(float salidaPID) {
     datos += "}";
     mqtt.publish("invernadero/datosGrafica", datos.c_str());
 
+    if (duracionRiego > 0 && (ahora - tCooldown < COOLDOWN_RIEGO)) {
+      duracionRiego = 0; // fuerza "no riego" durante cooldown
+    }
     if (duracionRiego > 0) {
       digitalWrite(CH1_IN, HIGH);
       delay(50); 
