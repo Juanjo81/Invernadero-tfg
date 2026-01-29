@@ -1,11 +1,11 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "2.9.1"
+#define VERSION_FIRMWARE "3.1.0"
 
 // ====== PINES ======
 #define DHTPIN           4
 #define DHTTYPE      DHT22
-#define SUELO_PIN       34
-#define SUELO_PIN2      35
+#define SUELO_PIN       35
+#define SUELO_PIN2      34
 #define ULTRASONIC_TRIG 12
 #define ULTRASONIC_ECHO 33
 #define CH1_IN          23
@@ -16,22 +16,23 @@
 #define SERVO_PIN       13
 #define SERVO_PIN2      14
 
-// =================== CONSTANTES FÍSICAS ===================
-const float SUELO_SECO        = 4100.0;  // valor de suelo seco
-const float SUELO_MOJADO        = 500.0;  // valor de suelo mojado
-const float SUELO_SECO2        = 2500.0;  // valor de suelo seco
-const float SUELO_MOJADO2        = 500.0;  // valor de suelo mojado
-const float DISTANCIA_MIN_CM = 3.0;   // tanque lleno
-const float DISTANCIA_MAX_CM = 28.0;  // tanque vacío
-//const unsigned long TIEMPO_MAX_RIEGO = 5000; // 5 segundos
-
+// =================== CONSTANTES  ======================
+const float SUELO_SECO        = 4100.0;  
+const float SUELO_MOJADO        = 500.0; 
+const float SUELO_SECO2        = 2500.0; 
+const float SUELO_MOJADO2        = 500.0; 
+const float DISTANCIA_MIN_CM = 3.0;   
+const float DISTANCIA_MAX_CM = 28.0;  
 const unsigned long INTERVALO_SENSORES = 5000; 
-
-#define DHTTYPE               DHT22      
+const float KpTemp = 2.0, KiTemp = 0.1, KdTemp = 0.5;
+const float KpHum  = 1.5, KiHum  = 0.05, KdHum  = 0.4;
 
 // =================== VARIABLES DE ESTADO ===================
 bool bombaOn = false;
 bool ventiladorOn = false;
+bool ledsEncendidos = true;
+bool ledsManual = false;
+unsigned long tInicioRiegoGlobal = 0;
 float nivelPct = 0.0;
 float sueloPct =0.0;
 float temperaturaActual = 0.0;
@@ -40,6 +41,7 @@ float temperaturaObjetivo = 50.0;
 float humedadObjetivo = 0.0;
 float tiempoMaxRiego = 5000;
 bool modoUsuarioLED = false;
+bool tapaAbierta = false;
 enum EstadoSistema {
   ESTADO_OK,
   ESTADO_RIEGO,
@@ -50,12 +52,7 @@ enum EstadoSistema {
   ESTADO_BLOQUEO_TOTAL,
   ESTADO_RIEGO_BLOQUEO_VENTILACION
 };
-
 EstadoSistema estadoActual = ESTADO_OK; // valor inicial
-
-
-static unsigned long tInicioRiegoGlobal = 0;
-
 
 // =================== TÓPICOS MQTT ===================
 // Comandos
@@ -70,7 +67,6 @@ const char* T_FAN_CMD         = "invernadero/ventiladores/cmd";
 const char* T_OPTIMO_TEMP     = "invernadero/optimo/temperatura";
 const char* T_OPTIMO_HUM      = "invernadero/optimo/humedad";
 const char* T_SERVO_CMD       = "invernadero/servomotor1/cmd";
-
 
 // Lecturas
 const char* T_SUELO_HUM       = "invernadero/suelo/humedad";

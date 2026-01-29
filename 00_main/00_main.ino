@@ -14,42 +14,31 @@ void controlarRiegoActivo();
 void activarBombaPorPID(float f);
 void activarVentiladorPorPID(float f);
 float leerNivel();
-bool verificarSensoresDuranteRiego();
 void compruebaVersion(unsigned long tiempoActual);
 void gestionarOTA();
 void configurarOTA(const char* nombreDispositivo);
 void actualizarEstadoVisual();
 
-extern Servo servoMotor;
-extern Servo servoMotor2;
 extern PubSubClient mqtt;
-extern Adafruit_SSD1306 display;
 extern const unsigned long INTERVALO_SENSORES;
-extern PubSubClient mqtt;
-extern bool regandoPID;
-
 extern PIDControl pidTemp;
 extern PIDControl pidHum;
-
 unsigned long t_sensores = 0;
 extern DHT dht;
-
 extern float nivelPct;
 extern float sueloPct;
 extern float temperaturaActual;
 extern float humedadActual;
 extern float temperaturaObjetivo;
 extern float humedadObjetivo;
-extern bool modoManual;
-extern bool bombaOn;
 
 
 void setup() {
   Serial.begin(115200);
-  inicializarActuadores();       // Servos, bomba, ventilador, LED RGB
-  inicializarSensores();         // Pines de suelo y ultrasonido
-  inicializarPantalla();         // OLED
-  inicializarRed();              // WiFi + MQTT  
+  inicializarActuadores();     
+  inicializarSensores();         
+  inicializarPantalla();         
+  inicializarRed();              
   inicializarTopics();
   inicializarPID(); 
   configurarOTA("InvernaderoESP32");

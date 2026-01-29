@@ -2,15 +2,12 @@
 #include <PubSubClient.h>
 extern bool modoManual;
 extern bool modoManualVentilador;
-extern int umbralEncender;
-extern int umbralApagar;
-bool ledsEncendidos=true;
-bool ledsManual=false;
 extern int ultimoR, ultimoG, ultimoB;
 extern bool tapaAbierta;
-extern int umbralVentilarEncender;
-extern int umbralVentilarApagar;
-
+extern bool ledsEncendidos;
+extern bool ledsManual;
+extern Servo servoMotor;
+extern Servo servoMotor2;
 
 // ====== WIFI ======
 const char* WIFI_SSID = "Tenda_1F2560";
@@ -41,33 +38,22 @@ void connectWiFi(){
 }
 
 void mantenerConexiones() {
-    if (WiFi.status() != WL_CONNECTED) connectWiFi();
+  if (WiFi.status() != WL_CONNECTED) connectWiFi();
   if (!mqtt.connected()) connectMQTT();
-
-  Serial.println("\nConectado a: " + WiFi.SSID());
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
-
 }
 void inicializarTopics(){
-    //Publicar limpieza de tópicos al iniciar
-  mqtt.publish("invernadero/alertas", "", true);           // Limpia alerta anterior
-  mqtt.publish("invernadero/notificaciones", "", true);    // Limpia notificación anterior
-  mqtt.publish("invernadero/suelo/humedad", "", true);     // Limpia lectura antigua
-  mqtt.publish("invernadero/tanque/nivel", "", true);      // Limpia nivel anterior
-  mqtt.publish("invernadero/bomba/state", "", true);       // Limpia estado bomba
+  //Publicar limpieza de tópicos al iniciar
+  mqtt.publish("invernadero/alertas", "", true);           
+  mqtt.publish("invernadero/notificaciones", "", true);    
+  mqtt.publish("invernadero/suelo/humedad", "", true);    
+  mqtt.publish("invernadero/tanque/nivel", "", true);      
+  mqtt.publish("invernadero/bomba/estado", "", true);     
   mqtt.publish("invernadero/led/power", "", true); 
   mqtt.publish("invernadero/debug/bloqueo", "", true); 
-  mqtt.publish("invernadero/notificaciones", "", true); 
   mqtt.publish("invernadero/estado", "", true);
-
 }
 
 void onMqtt(char* topic, byte* payload, unsigned int len) {
-  Serial.print("Topic recibido: '");
-Serial.print(topic);
-Serial.println("'");
-
   String msg; msg.reserve(len);
   for (unsigned int i = 0; i < len; i++) msg += (char)payload[i];
   msg.trim();
@@ -140,30 +126,23 @@ Serial.println("'");
     }
   }
 }
-
 void connectMQTT() {
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onMqtt);
 
   while (!mqtt.connected()) {
     if (mqtt.connect("esp32-invernadero", MQTT_USER, MQTT_PASS)) {
-      // Suscripciones necesarias
       mqtt.subscribe(T_BOMBA_CMD, 1);
-      mqtt.subscribe(T_BOMBA_MAXIMO, 1);      // ← añade esta
+      mqtt.subscribe(T_BOMBA_MAXIMO, 1);     
       mqtt.subscribe(T_OPTIMO_HUM, 1);
       mqtt.subscribe(T_OPTIMO_TEMP, 1);
       mqtt.subscribe(T_FAN_CMD, 1);
       mqtt.subscribe(T_LED_CMD, 1);
       mqtt.subscribe(T_LED_POWER, 1);
-      mqtt.subscribe(T_LED_MODO, 1);          // ← añade esta si quieres controlar modo LED
+      mqtt.subscribe(T_LED_MODO, 1);         
       mqtt.subscribe(T_SERVO_CMD, 1);
     } else {
       delay(500);
     }
   }
 }
-
-
-
-
-

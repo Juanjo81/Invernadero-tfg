@@ -114,12 +114,11 @@ class VistaModeloMQTT : ViewModel() {
             "invernadero/tanque/nivel",
             "invernadero/led/power",
             "invernadero/led/cmd",
-            "invernadero/led/modo",
+            "invernadero/led/mode",
             "invernadero/alertas",
             "invernadero/notificaciones",
-            "invernadero/objetivos/temperatura",
-            "invernadero/objetivos/humedad",
-            "invernadero/estado"
+            "invernadero/optimo/temperatura",
+            "invernadero/optimo/humedad",
         )
 
         clienteMQTT.publishes(MqttGlobalPublishFilter.ALL) { mensaje ->
@@ -148,13 +147,12 @@ class VistaModeloMQTT : ViewModel() {
                 "invernadero/aire/humedad" -> _humedadAire.value = payload.toFloatOrNull()?.toString() ?: "0.0"
                 "invernadero/suelo/humedad" -> _humedadSuelo.value = payload.toFloatOrNull()?.toString() ?: "0.0"
                 "invernadero/tanque/nivel" -> _nivelTanque.value = payload.toFloatOrNull()?.toString() ?: "0.0"
-                "invernadero/estado" -> _estado.value = payload
                 "invernadero/bomba/estado" -> _riegoEncendido.value = payload == "ON"
                 "invernadero/bomba/max" -> _tiempoMaxRiego.value = payload.toFloatOrNull() ?: _tiempoMaxRiego.value
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
                 "invernadero/led/cmd" -> _colorBombilla.value = Color(android.graphics.Color.parseColor(payload))
-                "invernadero/objetivos/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
-                "invernadero/objetivos/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
+                "invernadero/optimo/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
+                "invernadero/optimo/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
 
                 "invernadero/alertas" -> {
                     mostrarNotificacion(context, "Alerta del invernadero", payload)

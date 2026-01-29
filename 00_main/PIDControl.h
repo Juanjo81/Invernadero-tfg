@@ -1,11 +1,10 @@
+#include <Arduino.h>
 #ifndef PIDCONTROL_H
 #define PIDCONTROL_H
 
 #include <PubSubClient.h>
 #define PID_MIN -100.0
 #define PID_MAX 100.0
-
-extern PubSubClient mqtt;
 
 struct PIDControl {
   float Kp, Ki, Kd;
@@ -35,23 +34,15 @@ struct PIDControl {
 
     // Acumulación limitada para evitar saturación
     errorAcumulado += error * deltaT;
-    errorAcumulado = constrain(errorAcumulado, -100.0, 100.0);
+    errorAcumulado = constrain(errorAcumulado, PID_MIN, PID_MAX);
 
-    // Derivada suavizada
+    // Derivada 
     float derivada = (error - errorAnterior) / deltaT;
     errorAnterior = error;
 
     // Cálculo de salida sin saturación interna
     float salida = Kp * error + Ki * errorAcumulado + Kd * derivada;
-    output = salida; // sin constrain, se filtra en lógica externa
-
-    /* Trazabilidad por MQTT
-    if (mqtt.connected()) {
-      mqtt.publish("invernadero/debug/pid/error", String(error).c_str());
-      mqtt.publish("invernadero/debug/pid/error_acumulado", String(errorAcumulado).c_str());
-      mqtt.publish("invernadero/debug/pid/derivada", String(derivada).c_str());
-      mqtt.publish("invernadero/debug/pid/salida", String(output).c_str());
-    }*/
+    output = salida; 
   }
 };
 
