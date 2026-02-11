@@ -1,7 +1,6 @@
 package com.example.invernaderomqtt.ui.about
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +38,7 @@ fun PantallaAbout() {
             )
 
             Text(
-                text = "Versión 1.0",
+                text = "Versión 3.0",
                 color = Color(0xFFB0BEC5),
                 fontSize = 14.sp
             )

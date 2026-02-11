@@ -1,7 +1,5 @@
 package com.example.invernaderomqtt.ui.configuracion
 
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,7 +11,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.invernaderomqtt.ui.principal.VistaModeloMQTT
 import kotlinx.coroutines.delay
@@ -23,7 +20,6 @@ fun ConfiguracionServidorScreen(navController: NavHostController, vistaModelo: V
 
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
-
     var textoServidor by remember { mutableStateOf(TextFieldValue(vistaModelo.direccionIP.value)) }
     var mostrarDialogoError by remember { mutableStateOf(false) }
     var mostrarDialogoOk by remember { mutableStateOf(false) }
@@ -103,10 +99,10 @@ fun ConfiguracionServidorScreen(navController: NavHostController, vistaModelo: V
             confirmButton = {
                 TextButton(onClick = {
                     mostrarDialogoError = false
-                    // 👇 Guardar la IP aunque falle
+                    // Guardar la IP aunque falle
                     vistaModelo.setDireccionIP(textoServidor.text)
 
-                    // 👇 Navegar al principal
+                    // Navegar al principal
                     navController.navigate("principal") {
                         popUpTo("principal") { inclusive = true }
                     }

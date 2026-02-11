@@ -25,7 +25,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.invernaderomqtt.ui.PantallaPrincipal
-import com.example.invernaderomqtt.ui.BotonControl
 import com.example.invernaderomqtt.ui.about.PantallaAbout
 import com.example.invernaderomqtt.ui.configuracion.ConfiguracionScreen
 import com.example.invernaderomqtt.ui.configuracion.ConfiguracionServidorScreen
@@ -39,16 +38,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,7 +175,7 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
         ) {
             composable("principal") { PantallaPrincipal(navController = controlNavegacion, vistaModelo = vistaModelo) }
             composable("configuracion_pid") { ConfiguracionScreen(vistaModelo) }
-            composable("camara") { CamaraStreamScreen(vistaModelo = vistaModelo) }
+            composable("camara") { CamaraStreamScreen() }
             composable("historial_eventos") { PantallaHistorial() }
             composable("configuracion_servidor") { ConfiguracionServidorScreen(navController = controlNavegacion, vistaModelo = vistaModelo) }
             composable("about") { PantallaAbout() }
@@ -179,7 +183,7 @@ fun NavegacionApp(controlNavegacion: NavHostController, vistaModelo: VistaModelo
     }
 }
 @Composable
-fun CamaraStreamScreen(vistaModelo: VistaModeloMQTT? = null) {
+fun CamaraStreamScreen() {
     val context = LocalContext.current
     val libVLC = remember { LibVLC(context) }
     val mediaPlayer = remember { MediaPlayer(libVLC) }
@@ -219,8 +223,11 @@ fun MenuActuadores(
     puertaAbierta: Boolean,
     bombillaEncendida: Boolean,
     colorTarjeta: Color,
-    estado: String
+    estado: String,
+
 ) {
+
+    val conectado = vistaModelo.conectadoMQTT.collectAsState().value
     val colorBorde = when (estado) {
         "BLOQUEO_RIEGO" -> Color.Red
         "BLOQUEO_VENTILACION" -> Color(0xFFFF9800) // naranja
@@ -278,22 +285,26 @@ fun MenuActuadores(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                //  Botón de bomba: deshabilitado si bloqueo de riego o total
+                //  Botón de bomba: deshabilitado si desconectado o bloqueo de riego o total
                 BotonControl(
                     icono = Icons.Default.Opacity,
                     etiqueta = "Bomba",
                     activo = riegoActivo,
-                    enabled = estado != "BLOQUEO_RIEGO" && estado != "BLOQUEO_TOTAL"
+                    enabled = conectado &&
+                            estado != "BLOQUEO_RIEGO" &&
+                            estado != "BLOQUEO_TOTAL"
                 ) {
                     vistaModelo.alternarRiego()
                 }
 
-                //  Botón de ventilador: deshabilitado si bloqueo de ventilación o total
+                //  Botón de ventilador: deshabilitado si desconectado o bloqueo de ventilación o total
                 BotonControl(
                     icono = Icons.Default.AcUnit,
                     etiqueta = "Ventilador",
                     activo = ventilacionActiva,
-                    enabled = estado != "BLOQUEO_VENTILACION" && estado != "BLOQUEO_TOTAL"
+                    enabled = conectado &&
+                            estado != "BLOQUEO_VENTILACION" &&
+                            estado != "BLOQUEO_TOTAL"
                 ) {
                     vistaModelo.alternarVentilacion()
                 }
@@ -301,7 +312,8 @@ fun MenuActuadores(
                 BotonControl(
                     icono = Icons.Default.MeetingRoom,
                     etiqueta = "Puerta",
-                    activo = puertaAbierta
+                    activo = puertaAbierta,
+                    enabled = conectado
                 ) {
                     vistaModelo.alternarPuerta()
                 }
@@ -309,7 +321,8 @@ fun MenuActuadores(
                 BotonControl(
                     icono = Icons.Default.Lightbulb,
                     etiqueta = "Luz",
-                    activo = bombillaEncendida
+                    activo = bombillaEncendida,
+                    enabled = conectado
                 ) {
                     vistaModelo.alternarLuz()
                 }
@@ -318,6 +331,47 @@ fun MenuActuadores(
     }
 }
 
+@Composable
+fun BotonControl(
+    icono: ImageVector,
+    etiqueta: String,
+    activo: Boolean,
+    enabled: Boolean = true,
+    alPulsar: () -> Unit
+) {
+    val fondoAnimado by animateColorAsState(
+        targetValue = if (activo) Color(0xFF2E7D32) else Color(0xFF1A1A1A),
+        animationSpec = tween(durationMillis = 300)
+    )
+
+    Card(
+        backgroundColor = fondoAnimado,
+        elevation = if (activo) 12.dp else 4.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .padding(4.dp)
+            .size(72.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            IconButton(
+                onClick = alPulsar,
+                enabled = enabled
+            ) {
+                Icon(icono, contentDescription = etiqueta, tint = Color.White)
+            }
+
+            Text(
+                text = etiqueta,
+                color = if (enabled) Color.White else Color.Gray,
+                fontSize = 12.sp
+            )
+        }
+    }
+}
 
 
 

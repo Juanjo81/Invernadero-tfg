@@ -33,7 +33,6 @@ fun PantallaHistorial() {
                 fechaEvento.after(fechaInicio) && fechaEvento.before(fechaFin)
             }
         } else {
-            val hoy = Calendar.getInstance()
             val tresDiasAntes = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -2) }
             eventos.filter {
                 val fechaEvento = Calendar.getInstance().apply { time = Date(it.timestamp) }
@@ -125,7 +124,7 @@ fun EventoItemCompacto(evento: Evento) {
     val hora = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(evento.timestamp))
     val color = when (evento.tipo) {
         "alerta" -> Color.Red
-        "info" -> Color(0xFF2196F3) // azul
+        "notificacion" -> Color(0xFF2196F3) // azul
         else -> Color.Gray
     }
 

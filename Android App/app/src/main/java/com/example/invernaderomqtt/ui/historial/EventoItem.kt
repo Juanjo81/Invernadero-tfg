@@ -14,7 +14,7 @@ import java.util.*
 fun EventoItem(evento: Evento) {
     val color = when (evento.tipo) {
         "alerta" -> Color.Red
-        "info" -> Color.Blue
+        "notificacion" -> Color.Blue
         "debug" -> Color.Gray
         else -> Color.Black
     }

@@ -23,56 +23,35 @@ import java.nio.charset.StandardCharsets
 class VistaModeloMQTT : ViewModel() {
 
     private lateinit var clienteMQTT: Mqtt3AsyncClient
-
-    // Estado de conexión
     private val _conectadoMQTT = MutableStateFlow(false)
     val conectadoMQTT: StateFlow<Boolean> = _conectadoMQTT
-
-    // Último mensaje recibido (para watchdog)
     private var ultimoMensajeRecibido = System.currentTimeMillis()
-
-    // Variables de estado
-    private val _direccionIP = MutableStateFlow("invernaderotfg2.duckdns.org")
+    private val _direccionIP = MutableStateFlow("192.168.1.20")
     val direccionIP: StateFlow<String> = _direccionIP
-
     private val _temperaturaAire = MutableStateFlow("0.0")
     val temperaturaAire: StateFlow<String> = _temperaturaAire
-
     private val _humedadAire = MutableStateFlow("0.0")
     val humedadAire: StateFlow<String> = _humedadAire
-
     private val _humedadSuelo = MutableStateFlow("0.0")
     val humedadSuelo: StateFlow<String> = _humedadSuelo
-
     private val _temperaturaObjetivo = MutableStateFlow(60f)
     val temperaturaObjetivo: StateFlow<Float> = _temperaturaObjetivo
-
     private val _humedadObjetivo = MutableStateFlow(0f)
     val humedadObjetivo: StateFlow<Float> = _humedadObjetivo
-
     private val _nivelTanque = MutableStateFlow("0.0")
     val nivelTanque: StateFlow<String> = _nivelTanque
-
     private val _riegoEncendido = MutableStateFlow(false)
     val riegoEncendido: StateFlow<Boolean> = _riegoEncendido
-
     private val _ventilacionEncendida = MutableStateFlow(false)
     val ventilacionEncendida: StateFlow<Boolean> = _ventilacionEncendida
-
     private val _puertaAbierta = MutableStateFlow(false)
     val puertaAbierta: StateFlow<Boolean> = _puertaAbierta
-
     private val _bombillaEncendida = MutableStateFlow(false)
     val bombillaEncendida: StateFlow<Boolean> = _bombillaEncendida
-
     private val _colorBombilla = MutableStateFlow(Color.White)
     val colorBombilla: StateFlow<Color> = _colorBombilla
-
-
     private val _tiempoMaxRiego = MutableStateFlow(5f)
     val tiempoMaxRiego: StateFlow<Float> = _tiempoMaxRiego
-
-
     private val _estado = MutableStateFlow("OK")
     val estadoVisual: StateFlow<String> = _estado
 
@@ -93,6 +72,7 @@ class VistaModeloMQTT : ViewModel() {
                 if (error == null) {
                     _conectadoMQTT.value = true
                     suscribirseATopics(context)
+                    iniciarWatchdog()
                     Log.d("MQTT", "Conectado correctamente a ${_direccionIP.value}")
                 } else {
                     Log.e("MQTT", "Error al conectar a ${_direccionIP.value}", error)
@@ -100,8 +80,6 @@ class VistaModeloMQTT : ViewModel() {
                 }
             }
     }
-
-
 
     // --- Suscripción a topics ---
     private fun suscribirseATopics(context: Context) {
@@ -119,6 +97,7 @@ class VistaModeloMQTT : ViewModel() {
             "invernadero/notificaciones",
             "invernadero/optimo/temperatura",
             "invernadero/optimo/humedad",
+            "invernadero/estado"
         )
 
         clienteMQTT.publishes(MqttGlobalPublishFilter.ALL) { mensaje ->
@@ -127,7 +106,6 @@ class VistaModeloMQTT : ViewModel() {
             val topic = mensaje.topic.toString()
             val mensajeV3 = mensaje as? Mqtt3Publish
             val retained = mensajeV3?.isRetain ?: false
-
             val payload = mensaje.payload.map { buffer ->
                 val bytes = ByteArray(buffer.remaining())
                 buffer.get(bytes)
@@ -150,10 +128,10 @@ class VistaModeloMQTT : ViewModel() {
                 "invernadero/bomba/estado" -> _riegoEncendido.value = payload == "ON"
                 "invernadero/bomba/max" -> _tiempoMaxRiego.value = payload.toFloatOrNull() ?: _tiempoMaxRiego.value
                 "invernadero/led/power" -> _bombillaEncendida.value = payload == "ON"
+                "invernadero/estado" -> _estado.value = payload.trim()
                 "invernadero/led/cmd" -> _colorBombilla.value = Color(android.graphics.Color.parseColor(payload))
                 "invernadero/optimo/temperatura" -> _temperaturaObjetivo.value = payload.toFloatOrNull() ?: _temperaturaObjetivo.value
                 "invernadero/optimo/humedad" -> _humedadObjetivo.value = payload.toFloatOrNull() ?: _humedadObjetivo.value
-
                 "invernadero/alertas" -> {
                     mostrarNotificacion(context, "Alerta del invernadero", payload)
                     CoroutineScope(Dispatchers.IO).launch {
@@ -162,21 +140,18 @@ class VistaModeloMQTT : ViewModel() {
                         repo.registrarEvento("alerta", payload, topic)
                     }
                 }
-
                 "invernadero/notificaciones" -> {
                     mostrarNotificacion(context, "Notificación", payload)
                     CoroutineScope(Dispatchers.IO).launch {
                         val dao = EventoBD.obtener(context).eventoDao()
                         val repo = RepositorioEventos(dao)
-                        repo.registrarEvento("info", payload, topic)
+                        repo.registrarEvento("notificacion", payload, topic)
                     }
                 }
 
 
             }
         }
-
-
 
     topics.forEach { topic ->
             clienteMQTT.subscribeWith()
@@ -192,7 +167,6 @@ class VistaModeloMQTT : ViewModel() {
         }
     }
 
-    // --- Publicación robusta con verificación ---
     private fun publicar(topic: String, mensaje: String) {
         clienteMQTT.publishWith()
             .topic(topic)
@@ -207,8 +181,6 @@ class VistaModeloMQTT : ViewModel() {
             }
     }
 
-
-    // --- Métodos de control ---
     fun setTemperaturaObjetivo(valor: Float) {
         _temperaturaObjetivo.value = valor
         publicar("invernadero/optimo/temperatura", valor.toString())
@@ -262,8 +234,6 @@ class VistaModeloMQTT : ViewModel() {
         Log.d("MQTT", "Comando enviado a luz: ${if (nuevoEstado) "ON" else "OFF"}")
     }
 
-    // 🔧 Color LED en modo usuario (usa T_LED_CMD)
-
     fun setModoUsuarioLed(color: Color) {
         _colorBombilla.value = color
         val hex = String.format("#%02X%02X%02X",
@@ -272,30 +242,26 @@ class VistaModeloMQTT : ViewModel() {
             (color.blue * 255).toInt()
         )
         publicar("invernadero/led/cmd", hex)
-        publicar("invernadero/led/mode", "USER") // activa modo usuario
+        publicar("invernadero/led/mode", "USER") //
     }
 
-    // 🔧 Volver a modo automático de LEDs
     fun setModoAutomaticoLed() {
         _colorBombilla.value = Color.Green
-        publicar("invernadero/led/cmd", "#00FF00") // 👈 fuerza verde en el LED físico
+        publicar("invernadero/led/cmd", "#00FF00") //
         publicar("invernadero/led/mode", "AUTO")
 
     }
-
 
     fun setDireccionIP(nueva: String) {
         // Permite cambiar la dirección IP del broker MQTT
         _direccionIP.value = nueva
     }
 
-    // 🔧 Tiempo máximo de riego manual (segundos)
     fun setTiempoMaxRiego(valorSegundos: Float) {
         _tiempoMaxRiego.value = valorSegundos
         val milis = valorSegundos * 1000
         publicar("invernadero/bomba/max", milis.toString())
     }
-
 
     // --- Watchdog de recepción ---
     fun iniciarWatchdog() {

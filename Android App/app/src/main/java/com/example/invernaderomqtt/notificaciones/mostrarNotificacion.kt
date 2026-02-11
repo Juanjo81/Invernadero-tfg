@@ -19,9 +19,11 @@ fun mostrarNotificacion(context: Context, titulo: String, mensaje: String) {
 
     // Crear canal si es necesario
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val canal = NotificationChannel(canalId, nombreCanal, importancia)
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(canal)
+        if (manager.getNotificationChannel(canalId) == null) {
+            val canal = NotificationChannel(canalId, nombreCanal, importancia)
+            manager.createNotificationChannel(canal)
+        }
     }
 
     // Construir notificación

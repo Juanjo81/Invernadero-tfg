@@ -1,21 +1,14 @@
 package com.example.invernaderomqtt.ui
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -24,8 +17,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.invernaderomqtt.R
 import com.example.invernaderomqtt.ui.principal.VistaModeloMQTT
-import kotlinx.coroutines.launch
-
 
 @Composable
 fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT) {
@@ -33,21 +24,9 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
     val humedad by vistaModelo.humedadAire.collectAsState()
     val humedadSuelo by vistaModelo.humedadSuelo.collectAsState()
     val nivelDeposito by vistaModelo.nivelTanque.collectAsState()
-    val temperaturaObjetivo by vistaModelo.temperaturaObjetivo.collectAsState()
-    val humedadObjetivo by vistaModelo.humedadObjetivo.collectAsState()
-
     val conectado by vistaModelo.conectadoMQTT.collectAsState()
     val direccionIP by vistaModelo.direccionIP.collectAsState()
-    val riegoActivo by vistaModelo.riegoEncendido.collectAsState()
-    val ventilacionActiva by vistaModelo.ventilacionEncendida.collectAsState()
-    val puertaAbierta by vistaModelo.puertaAbierta.collectAsState()
-    val bombillaEncendida by vistaModelo.bombillaEncendida.collectAsState()
 
-    val colorTarjeta = Color(0xFF1A1A1A)
-    val scrollState = rememberScrollState()
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -78,12 +57,12 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
 
         }
 
-        // 🔹 Luego las columnas con sensores
+        // Columnas
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 🟥 Columna izquierda
+            // Columna izquierda
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -119,7 +98,7 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
                 }
             }
 
-            // 🟦 Columna derecha
+            // Columna derecha
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -139,20 +118,6 @@ fun PantallaPrincipal(navController: NavController, vistaModelo: VistaModeloMQTT
             }
         }
     }
-}
-
-
-@Composable
-fun DrawerItem(texto: String, onClick: () -> Unit) {
-    Text(
-        text = texto,
-        color = Color.White,
-        fontSize = 16.sp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp)
-    )
 }
 
 @Composable
@@ -313,40 +278,6 @@ fun TarjetaDeposito(
                     modifier = Modifier.align(Alignment.End)
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun BotonControl(
-    icono: ImageVector,
-    etiqueta: String,
-    activo: Boolean,
-    enabled: Boolean = true,
-    alPulsar: () -> Unit
-) {
-    val fondoAnimado by animateColorAsState(
-        targetValue = if (activo) Color(0xFF2E7D32) else Color(0xFF1A1A1A),
-        animationSpec = tween(durationMillis = 300)
-    )
-
-    Card(
-        backgroundColor = fondoAnimado,
-        elevation = if (activo) 12.dp else 4.dp,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier
-            .padding(4.dp)
-            .size(72.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            IconButton(onClick = alPulsar) {
-                Icon(icono, contentDescription = etiqueta, tint = Color.White)
-            }
-            Text(text = etiqueta, color = Color.White, fontSize = 12.sp)
         }
     }
 }

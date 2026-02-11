@@ -6,8 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "eventos")
 data class Evento(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val tipo: String,              // "alerta", "info", "debug"
-    val mensaje: String,           // contenido del evento
-    val topico: String,            // tópico MQTT asociado
+    val tipo: String,
+    val mensaje: String,
+    val topico: String,
     val timestamp: Long = System.currentTimeMillis()
 )

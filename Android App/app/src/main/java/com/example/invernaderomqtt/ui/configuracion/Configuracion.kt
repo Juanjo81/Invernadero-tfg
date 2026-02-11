@@ -158,9 +158,7 @@ fun ColorRGBPicker(
     var red by remember { mutableStateOf((colorInicial.red * 255).toInt()) }
     var green by remember { mutableStateOf((colorInicial.green * 255).toInt()) }
     var blue by remember { mutableStateOf((colorInicial.blue * 255).toInt()) }
-
     val colorActual = Color(red, green, blue)
-
     val coloresPredefinidos = listOf(
         Color.White, Color.Black, Color.Red, Color.Green, Color.Blue,
         Color.Yellow, Color.Cyan, Color.Magenta, Color.Gray, Color(255, 165, 0) // naranja
