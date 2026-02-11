@@ -3,13 +3,13 @@
 // ====== VARIABLES ======
 PIDControl pidTemp;
 PIDControl pidHum;
-const unsigned long EVALUACION_PID = 5000;
+const unsigned long EVALUACION_PID = 30000;
 extern const float KpTemp, KiTemp, KdTemp;
 extern const float KpHum, KiHum, KdHum;
 extern bool tapaAbierta;
 bool regandoPID = false;
 unsigned long tCooldown = 0;
-const unsigned long COOLDOWN_RIEGO = 15000; 
+const unsigned long COOLDOWN_RIEGO = 75000; 
 
 void activarBombaPorPID(float salidaPID) {
   static unsigned long tEvaluacion = 0;
@@ -46,24 +46,31 @@ void activarBombaPorPID(float salidaPID) {
     tEvaluacion = ahora;
     salidaPID = constrain(salidaPID, PID_MIN, PID_MAX);
     duracionRiego = calcularTiempoPID(salidaPID, EVALUACION_PID);
-
+    const float BANDA_MUERTA = 0.3;
+    if (sueloPct >= humedadObjetivo - BANDA_MUERTA) {
+      duracionRiego = 0;
+    }
     //Hora
     time_t now = time(nullptr);
     struct tm* timeinfo = localtime(&now);
 
+    if (duracionRiego > 0 && (ahora - tCooldown < COOLDOWN_RIEGO)) {
+      duracionRiego = 0; 
+    }
+
+    
+    
     char fechaHora[30];
     strftime(fechaHora, sizeof(fechaHora), "%Y-%m-%d %H:%M:%S", timeinfo);
     String datos = "{";
-    datos += "\"Fecha\":" + String(fechaHora) + ",";
+    datos += "\"Fecha\":\"" + String(fechaHora) + ",";
     datos += "\"hum_actual\":" + String(sueloPct) + ",";
     datos += "\"hum_objetivo\":" + String(humedadObjetivo) + ",";
     datos += "\"tiempo_riego\":" + String(duracionRiego);
     datos += "}";
     mqtt.publish("invernadero/datosGrafica", datos.c_str());
 
-    if (duracionRiego > 0 && (ahora - tCooldown < COOLDOWN_RIEGO)) {
-      duracionRiego = 0; // fuerza "no riego" durante cooldown
-    }
+    
     if (duracionRiego > 0) {
       digitalWrite(CH1_IN, HIGH);
       delay(50); 
@@ -146,10 +153,17 @@ void activarVentiladorPorPID(float salidaPIDTemp) {
 }
 
 unsigned long calcularTiempoPID(float salidaPID, unsigned long periodoMaximo) {
-  if (salidaPID <= 0) return 0;
-  if (salidaPID < 5.0) return max((unsigned long)(salidaPID * 1000), 1000UL);
-  if (salidaPID < 100.0) return periodoMaximo; 
-  return periodoMaximo;  
+  // salidaPID viene de -100..100; solo nos interesa la parte positiva
+  salidaPID = constrain(salidaPID, 0.0f, 100.0f);
+
+  unsigned long t = (unsigned long)((salidaPID / 100.0f) * (float)periodoMaximo);
+
+  const unsigned long MIN_RIEGO_MS = 2000;
+  const unsigned long MAX_RIEGO_MS = 8000;
+
+ // if (t > 0 && t < MIN_RIEGO_MS) t = MIN_RIEGO_MS;
+  if (t > MAX_RIEGO_MS) t = MAX_RIEGO_MS;
+  return t;
 }
 
 void inicializarPID() {

@@ -28,7 +28,6 @@ void inicializarRed() {
   connectMQTT();
   //hora
   configTime(3600, 0, "pool.ntp.org", "time.nist.gov");
-
 }
 
 void connectWiFi(){
@@ -103,7 +102,6 @@ void onMqtt(char* topic, byte* payload, unsigned int len) {
       tiempoMaxRiego = tiempo;
       Serial.print("⏱ Tiempo máximo de riego actualizado: ");
       Serial.println(tiempoMaxRiego);
-    
   }
   else if (String(topic) == T_OPTIMO_TEMP) {
     modoManualVentilador = false;

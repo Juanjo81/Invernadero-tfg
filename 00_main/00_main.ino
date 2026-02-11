@@ -32,7 +32,6 @@ extern float humedadActual;
 extern float temperaturaObjetivo;
 extern float humedadObjetivo;
 
-
 void setup() {
   Serial.begin(115200);
   inicializarActuadores();     
@@ -45,19 +44,19 @@ void setup() {
 
 }
 
-
 void loop() {
   mantenerConexiones();
   mqtt.loop();
   gestionarOTA();
   compruebaVersion(millis());
-
   unsigned long ahora = millis();
+
   // Control de errores durante riego manual o PID
   controlarRiegoActivo();
   actualizarEstadoVisual();
+
   // Control periódico de sensores
-  if (ahora - t_sensores > INTERVALO_SENSORES) {
+  if (ahora - t_sensores >= INTERVALO_SENSORES) {
      
       sueloPct = leerHumedadSuelo();
       temperaturaActual = leerTemperatura();
@@ -71,12 +70,9 @@ void loop() {
       pidTemp.actualizar(temperaturaActual, temperaturaObjetivo);
       pidHum.actualizar(sueloPct, humedadObjetivo);
 
-
-
       t_sensores = ahora;
     }
-          // Control proporcional por tiempo
+      // Control proporcional por tiempo
       activarBombaPorPID(pidHum.output);
       activarVentiladorPorPID(pidTemp.output);
 }
-

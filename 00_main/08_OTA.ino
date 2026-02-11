@@ -4,7 +4,6 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>  
 
-
 void configurarOTA(const char* nombreDispositivo) {
   ArduinoOTA.setHostname(nombreDispositivo);
 
@@ -108,5 +107,3 @@ bool esVersionSuperior(String remota, String local) {
 
   return false;
 }
-
-

@@ -30,8 +30,33 @@ void inicializarSensores() {
   pinMode(ULTRASONIC_ECHO, INPUT);
   dht.begin();
 }
+int leerHumedadMediana7() {
+  int v[7];
+
+  for (int i = 0; i < 7; i++) {
+    v[i] = analogRead(SUELO_PIN);
+    delay(10);
+  }
+
+  ordenar(v, 7);
+  return v[3];
+}
+
+void ordenar(int *v, int n) {
+  for (int i = 0; i < n - 1; i++) {
+    for (int j = i + 1; j < n; j++) {
+      if (v[j] < v[i]) {
+        int tmp = v[i];
+        v[i] = v[j];
+        v[j] = tmp;
+      }
+    }
+  }
+}
+
+
 float leerHumedadSuelo() {
-  int raw1 = analogRead(SUELO_PIN);
+  int raw1 = leerHumedadMediana7();
 
   if (raw1 < 100 || raw1 > 4094) {
     sensorSueloOK = false;
@@ -44,17 +69,17 @@ float leerHumedadSuelo() {
     lecturasValidas = 0; 
   }
 
-  float pct1 = ((SUELO_SECO2 - raw1) / (SUELO_SECO2 - SUELO_MOJADO2)) * 100.0;
+  float pct1 = ((SUELO_SECO - raw1) / (SUELO_SECO - SUELO_MOJADO)) * 100.0;
   pct1 = constrain(pct1, 0.0, 100.0);
   humedadSuavizada1 = ALPHA * pct1 + (1.0 - ALPHA) * humedadSuavizada1;
 
   static float anterior1 = 0.0;
   if (abs(humedadSuavizada1 - anterior1) >= CAMBIO_MINIMO) {
     anterior1 = humedadSuavizada1;
-    mqtt.publish("invernadero/humedadSuelo1", String(humedadSuavizada1, 1).c_str());
   }
   return humedadSuavizada1;
 }
+
 float leerTemperatura() {
   float t = dht.readTemperature();
     if (isnan(t)) {
@@ -210,6 +235,20 @@ void actualizarEstadoVisual() {
   }
 }
 
+int leerADCMediana5(int pin) {
+  int v[5];
+  for (int i = 0; i < 5; i++) {
+    v[i] = analogRead(pin);
+    delay(2);
+  }
+  // ordenar 5 valores (burbuja simple)
+  for (int i = 0; i < 4; i++) {
+    for (int j = i + 1; j < 5; j++) {
+      if (v[j] < v[i]) { int t = v[i]; v[i] = v[j]; v[j] = t; }
+    }
+  }
+  return v[2]; // mediana
+}
 
 
 

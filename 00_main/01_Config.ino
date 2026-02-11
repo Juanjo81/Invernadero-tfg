@@ -1,11 +1,11 @@
 // ====== VERSION ======
-#define VERSION_FIRMWARE "3.1.1"
+#define VERSION_FIRMWARE "3.2.0"
 
 // ====== PINES ======
 #define DHTPIN           4
 #define DHTTYPE      DHT22
-#define SUELO_PIN       35
-#define SUELO_PIN2      34
+#define SUELO_PIN       34
+#define SUELO_PIN2      35
 #define ULTRASONIC_TRIG 12
 #define ULTRASONIC_ECHO 33
 #define CH1_IN          23
@@ -17,15 +17,15 @@
 #define SERVO_PIN2      14
 
 // =================== CONSTANTES  ======================
-const float SUELO_SECO        = 4100.0;  
+const float SUELO_SECO        = 2500.0;  
 const float SUELO_MOJADO        = 500.0; 
-const float SUELO_SECO2        = 2500.0; 
-const float SUELO_MOJADO2        = 500.0; 
+const float SUELO_SECO2        = 3900.0; 
+const float SUELO_MOJADO2        = 1150.0; 
 const float DISTANCIA_MIN_CM = 3.0;   
 const float DISTANCIA_MAX_CM = 28.0;  
 const unsigned long INTERVALO_SENSORES = 5000; 
 const float KpTemp = 2.0, KiTemp = 0.1, KdTemp = 0.5;
-const float KpHum  = 1.5, KiHum  = 0.05, KdHum  = 0.4;
+const float KpHum  = 2.5, KiHum  = 0.08, KdHum  = 0.05;
 
 // =================== VARIABLES DE ESTADO ===================
 bool bombaOn = false;

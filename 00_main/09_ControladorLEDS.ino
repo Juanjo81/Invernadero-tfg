@@ -1,7 +1,6 @@
 // ====== VARIABLES ======
 int ultimoR = 255, ultimoG = 255, ultimoB = 255;
 
-
 // ====== FUNCIONES ======
 void inicializarLEDs() {
   ledcAttach(LED_R_PIN, 5000, 8);
